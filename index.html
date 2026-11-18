@@ -920,16 +920,6 @@
       border: 1px solid rgba(16, 185, 129, 0.3);
     }
 
-    .wrong-item-exp {
-      margin-top: 8px;
-      font-size: 0.9rem;
-      color: #cbd5e1;
-      background: rgba(14, 165, 233, 0.08);
-      padding: 10px 12px;
-      border-radius: 8px;
-      border-left: 3px solid var(--accent-secondary);
-    }
-
     .btn-jump-small {
       padding: 4px 10px;
       font-size: 0.78rem;
@@ -1062,7 +1052,7 @@
             <ul class="feature-list">
               <li>✅ Chọn đáp án báo <strong>Đúng / Sai ngay lập tức</strong> với độ trễ âm thanh <strong>0 giây</strong>.</li>
               <li>👻 Chọn đúng có chuông vang đặc trưng; chọn sai phát <strong>âm thanh rùng rợn</strong>.</li>
-              <li>⚡ Tự luyện tập tốc độ cao để ghi nhớ lý luận cốt lõi từng chương.</li>
+              <li>🔀 Mặc định giữ nguyên thứ tự gốc; có nút bật/tắt <strong>Tráo câu hỏi & đáp án</strong> theo ý muốn.</li>
             </ul>
           </div>
 
@@ -1108,7 +1098,7 @@
             <span class="section-tag tag-exam">Phần 2 · Kiểm tra sát hạch</span>
             <h2>📝 Phòng Thi Thử Tổng Hợp (50 Câu / 60 Phút)</h2>
             <ul class="feature-list">
-              <li>🎲 Bốc ngẫu nhiên từ 600 câu: <strong>tối thiểu 15 câu Chương 1 + 15 câu Chương 2 + 15 câu Chương 3 + 5 câu ngẫu nhiên tổng hợp</strong> (tráo cả thứ tự câu lẫn đáp án).</li>
+              <li>🎲 Bốc ngẫu nhiên từ 600 câu: <strong>tối thiểu 15 câu Chương 1 + 15 câu Chương 2 + 15 câu Chương 3 + 5 câu ngẫu nhiên tổng hợp</strong> (tự động tráo cả thứ tự câu lẫn đáp án).</li>
               <li>⏱️ Đồng hồ đếm ngược <strong>60 phút</strong>; hết giờ tự động hú còi báo động và thu bài.</li>
               <li>📊 Nộp bài chấm điểm ngay (<strong>0.2đ/câu</strong>), thống kê số câu sai, chỉ rõ đáp án đúng.</li>
             </ul>
@@ -1153,7 +1143,7 @@
           <button class="tool-btn" id="ws-lvl-3" onclick="startPracticeLevel(3)" style="display: none;">Mức 3: Chương 3 (265)</button>
         </div>
         <div class="tool-actions">
-          <button class="tool-btn" id="btn-shuffle" onclick="shuffleCurrentSession()">🔀 Tráo thứ tự câu & đáp án</button>
+          <button class="tool-btn" id="btn-shuffle" onclick="togglePracticeShuffle()">🔀 Tráo câu hỏi & đáp án</button>
           <button class="tool-btn" onclick="resetCurrentSession()">🔄 Làm lại phiên này</button>
         </div>
       </div>
@@ -1387,7 +1377,7 @@
       }
 
       let ansIdx = 0;
-      const rawAns = item.ans !== undefined ? item.ans : item.correct;
+      const rawAns = item.ans !== undefined ? item.ans : (item.correct !== undefined ? item.correct : item.answer);
       if (typeof rawAns === 'number') {
         ansIdx = rawAns;
       } else if (typeof rawAns === 'string') {
@@ -1577,6 +1567,7 @@
     let userAnswers = [];
     let currentFilter = 'all';
     let isExamMode = false;
+    let practiceShuffled = false;
     let currentPracticeLevel = 1;
     let examSubmitted = false;
 
@@ -1584,19 +1575,28 @@
     let timeRemaining = EXAM_DURATION_SECONDS;
     let timerInterval = null;
 
+    function getSecureRandomInt(max) {
+      if (window.crypto && window.crypto.getRandomValues) {
+        const arr = new Uint32Array(1);
+        window.crypto.getRandomValues(arr);
+        return arr[0] % max;
+      }
+      return Math.floor(Math.random() * max);
+    }
+
     function shuffleArray(arr) {
       const copy = arr.slice();
       for (let i = copy.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
+        const j = getSecureRandomInt(i + 1);
         [copy[i], copy[j]] = [copy[j], copy[i]];
       }
       return copy;
     }
 
-    // Tráo vị trí A, B, C, D của từng câu nhưng giữ nguyên nội dung đáp án đúng
+    // Tráo vị trí A, B, C, D của từng câu (ép đảo khác thứ tự gốc) nhưng giữ nguyên nội dung đáp án đúng
     function shuffleQuestionChoices(item) {
       const opts = Array.isArray(item.options) ? item.options.slice() : [];
-      if (opts.length === 0) return { ...item };
+      if (opts.length <= 1) return { ...item, options: opts };
 
       const hasLetterPrefix = opts.length === 4 && opts.every((opt, i) =>
         new RegExp(`^${prefixes[i]}[\\.\\)\\:\\-]\\s*`, 'i').test(String(opt).trim())
@@ -1607,12 +1607,19 @@
           ? String(rawText).trim().replace(new RegExp(`^${prefixes[idx]}[\\.\\)\\:\\-]\\s*`, 'i'), '')
           : String(rawText);
         return {
+          origIdx: idx,
           text: cleanText,
           isCorrect: idx === item.ans
         };
       });
 
-      const shuffledOpts = shuffleArray(mappedOpts);
+      let shuffledOpts = shuffleArray(mappedOpts);
+      let guard = 0;
+      while (shuffledOpts.every((o, idx) => o.origIdx === idx) && guard < 12) {
+        shuffledOpts = shuffleArray(mappedOpts);
+        guard++;
+      }
+
       const newCorrectIdx = shuffledOpts.findIndex(o => o.isCorrect);
 
       return {
@@ -1620,6 +1627,19 @@
         options: shuffledOpts.map(o => o.text),
         ans: newCorrectIdx >= 0 ? newCorrectIdx : 0
       };
+    }
+
+    function updatePracticeShuffleButtonUI() {
+      const btnShuffle = document.getElementById('btn-shuffle');
+      if (isExamMode) {
+        btnShuffle.style.display = 'none';
+        return;
+      }
+      btnShuffle.style.display = 'inline-flex';
+      btnShuffle.classList.toggle('active-mode', practiceShuffled);
+      btnShuffle.textContent = practiceShuffled
+        ? '🔀 Đang tráo câu & đáp án (Bấm để về mặc định)'
+        : '🔀 Tráo câu hỏi & đáp án';
     }
 
     function goHome() {
@@ -1652,9 +1672,11 @@
 
       stopExamTimer();
       isExamMode = false;
+      practiceShuffled = false;
       examSubmitted = false;
       currentPracticeLevel = level;
 
+      // Mặc định giữ nguyên thứ tự câu hỏi và thứ tự đáp án gốc
       originalSessionQuestions = JSON.parse(JSON.stringify(bank));
       activeQuestions = JSON.parse(JSON.stringify(bank));
       userAnswers = new Array(activeQuestions.length).fill(null);
@@ -1669,7 +1691,7 @@
       document.getElementById('main-header-title').textContent =
         `PHẦN 1: ÔN TẬP MỨC ${level} · ${CHAPTER_NAMES[level].toUpperCase()}`;
       document.getElementById('main-header-sub').textContent =
-        `Chế độ ôn tập luyện tập nhanh · Tổng số: ${activeQuestions.length}/${TARGET_COUNTS[level]} câu`;
+        `Chế độ ôn tập mặc định · Tổng số: ${activeQuestions.length}/${TARGET_COUNTS[level]} câu`;
 
       [1, 2, 3].forEach(lvl => {
         const btn = document.getElementById(`ws-lvl-${lvl}`);
@@ -1677,7 +1699,7 @@
         btn.classList.toggle('active-mode', lvl === level);
       });
 
-      document.getElementById('btn-shuffle').style.display = 'inline-flex';
+      updatePracticeShuffleButtonUI();
       document.getElementById('pill-correct').style.display = 'block';
       document.getElementById('pill-wrong').style.display = 'block';
       document.getElementById('pill-progress').style.display = 'block';
@@ -1725,11 +1747,12 @@
       ];
       const extra5 = shuffleArray(remainingPool).slice(0, 5);
 
-      // Tráo thứ tự 50 câu VÀ tráo đáp án A/B/C/D của từng câu (giữ nguyên đáp án đúng gốc)
+      // Phần thi: luôn tráo thứ tự 50 câu VÀ tráo 4 đáp án A/B/C/D của từng câu
       const raw50 = shuffleArray([...picked1, ...picked2, ...picked3, ...extra5])
         .map(item => shuffleQuestionChoices(item));
 
       isExamMode = true;
+      practiceShuffled = false;
       examSubmitted = false;
       originalSessionQuestions = JSON.parse(JSON.stringify(raw50));
       activeQuestions = JSON.parse(JSON.stringify(raw50));
@@ -1745,7 +1768,7 @@
       [1, 2, 3].forEach(lvl => {
         document.getElementById(`ws-lvl-${lvl}`).style.display = 'none';
       });
-      document.getElementById('btn-shuffle').style.display = 'none';
+      updatePracticeShuffleButtonUI();
 
       document.getElementById('main-header-title').textContent =
         "PHẦN 2: PHÒNG THI THỬ TRIẾT HỌC MÁC - LÊNIN (50 CÂU · 60 PHÚT)";
@@ -2016,9 +2039,22 @@
       });
     }
 
-    function shuffleCurrentSession() {
+    // Bật / Tắt chế độ tráo câu hỏi & đáp án trong Phần Ôn Tập
+    function togglePracticeShuffle() {
       if (isExamMode) return;
-      activeQuestions = shuffleArray(originalSessionQuestions).map(item => shuffleQuestionChoices(item));
+      practiceShuffled = !practiceShuffled;
+
+      if (practiceShuffled) {
+        activeQuestions = shuffleArray(originalSessionQuestions).map(item => shuffleQuestionChoices(item));
+        document.getElementById('main-header-sub').textContent =
+          `Chế độ ôn tập (Đang tráo câu hỏi & đáp án) · Tổng số: ${activeQuestions.length}/${TARGET_COUNTS[currentPracticeLevel]} câu`;
+      } else {
+        activeQuestions = JSON.parse(JSON.stringify(originalSessionQuestions));
+        document.getElementById('main-header-sub').textContent =
+          `Chế độ ôn tập mặc định · Tổng số: ${activeQuestions.length}/${TARGET_COUNTS[currentPracticeLevel]} câu`;
+      }
+
+      updatePracticeShuffleButtonUI();
       playSound('nav');
       resetCurrentSession();
     }
