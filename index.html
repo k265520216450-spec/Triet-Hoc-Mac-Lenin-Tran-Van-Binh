@@ -994,6 +994,9 @@
   </style>
 </head>
 <body>
+  <!-- FILE ÂM THANH KHI CHỌN SAI (Đặt file sai.mp3 cùng thư mục với file HTML) -->
+  <audio id="wrong-voice-audio" src="sai.mp3" preload="auto"></audio>
+
   <div class="container">
     <!-- HEADER CHUNG -->
     <header>
@@ -1018,7 +1021,8 @@
       <section class="bank-status-card">
         <div class="bank-status-top">
           <h2>📦 Trạng thái dữ liệu ngân hàng câu hỏi (Tổng mục tiêu: 600 câu)</h2>
-          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <!-- Đã ẩn 2 nút Nạp / Dán Code Câu Hỏi và Xóa bộ nhớ tạm -->
+          <div style="display: none; gap: 8px; flex-wrap: wrap;">
             <button class="tool-btn" onclick="openImportModal()">📥 Nạp / Dán Code Câu Hỏi</button>
             <button class="tool-btn" onclick="clearImportedStorage()" title="Xóa dữ liệu đã dán trong trình duyệt">🗑️ Xóa bộ nhớ tạm</button>
           </div>
@@ -1051,7 +1055,7 @@
             <h2>📖 Chế Độ Ôn Tập Theo Chương (3 Mức)</h2>
             <ul class="feature-list">
               <li>✅ Chọn đáp án báo <strong>Đúng / Sai ngay lập tức</strong> với độ trễ âm thanh <strong>0 giây</strong>.</li>
-              <li>👻 Chọn đúng có chuông vang đặc trưng; chọn sai phát <strong>âm thanh rùng rợn</strong>.</li>
+              <li>🔊 Chọn đúng có chuông vang đặc trưng; chọn sai phát <strong>cảnh báo cực to giật mình</strong>.</li>
               <li>🔀 Mặc định giữ nguyên thứ tự gốc; có nút bật/tắt <strong>Tráo câu hỏi & đáp án</strong> theo ý muốn.</li>
             </ul>
           </div>
@@ -1427,9 +1431,10 @@
       document.getElementById('lvl3-status').textContent = `Đã nạp: ${c3}/265`;
     }
 
-    // ==================== HỆ THỐNG ÂM THANH ĐỘ TRỄ 0 GIÂY ====================
+    // ==================== HỆ THỐNG ÂM THANH ĐỘ TRỄ 0 GIÂY & KHUẾCH ĐẠI CỰC TO ====================
     let soundEnabled = true;
     let audioCtx = null;
+    let wrongVoiceConnected = false;
 
     function unlockAudio() {
       if (!audioCtx) {
@@ -1441,11 +1446,51 @@
       if (audioCtx && audioCtx.state === 'suspended') {
         audioCtx.resume();
       }
+      setupWrongVoiceBooster();
+    }
+
+    // Khuếch đại file sai.mp3 lên 400% qua Web Audio API để phát cực to
+    function setupWrongVoiceBooster() {
+      if (wrongVoiceConnected || !audioCtx) return;
+      const audioEl = document.getElementById('wrong-voice-audio');
+      if (!audioEl) return;
+
+      try {
+        const source = audioCtx.createMediaElementSource(audioEl);
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.value = 4.0; // Kích âm lượng lên gấp 4 lần
+
+        const compressor = audioCtx.createDynamicsCompressor();
+        compressor.threshold.setValueAtTime(-12, audioCtx.currentTime);
+        compressor.knee.setValueAtTime(10, audioCtx.currentTime);
+        compressor.ratio.setValueAtTime(12, audioCtx.currentTime);
+        compressor.attack.setValueAtTime(0.002, audioCtx.currentTime);
+        compressor.release.setValueAtTime(0.15, audioCtx.currentTime);
+
+        source.connect(gainNode);
+        gainNode.connect(compressor);
+        compressor.connect(audioCtx.destination);
+        wrongVoiceConnected = true;
+      } catch (e) {
+        console.warn('Không thể nối bộ khuếch đại Web Audio cho sai.mp3:', e);
+      }
     }
 
     ['pointerdown', 'touchstart', 'keydown'].forEach(evt => {
       document.addEventListener(evt, unlockAudio, { passive: true });
     });
+
+    function speakFallbackWrongPhrase() {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance("Sao mình ngu vậy!");
+        utter.lang = 'vi-VN';
+        utter.volume = 1.0;
+        utter.rate = 1.1;
+        utter.pitch = 1.05;
+        window.speechSynthesis.speak(utter);
+      }
+    }
 
     function playSound(type) {
       if (!soundEnabled) return;
@@ -1470,34 +1515,37 @@
           osc.stop(now + i * 0.055 + 0.29);
         });
       } else if (type === 'wrong') {
-        const masterGain = audioCtx.createGain();
-        const filter = audioCtx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(950, now);
-        filter.frequency.exponentialRampToValueAtTime(160, now + 0.72);
+        // 1. Cú giật tiếng (shock transient) cực mạnh ngay 0.00 giây
+        const shockOsc = audioCtx.createOscillator();
+        const shockGain = audioCtx.createGain();
+        shockOsc.type = 'sawtooth';
+        shockOsc.frequency.setValueAtTime(220, now);
+        shockOsc.frequency.exponentialRampToValueAtTime(55, now + 0.14);
 
-        masterGain.gain.setValueAtTime(0.001, now);
-        masterGain.gain.linearRampToValueAtTime(0.28, now + 0.01);
-        masterGain.gain.exponentialRampToValueAtTime(0.001, now + 0.75);
+        shockGain.gain.setValueAtTime(0.95, now);
+        shockGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
 
-        filter.connect(masterGain);
-        masterGain.connect(audioCtx.destination);
+        shockOsc.connect(shockGain);
+        shockGain.connect(audioCtx.destination);
+        shockOsc.start(now);
+        shockOsc.stop(now + 0.16);
 
-        const creepyFreqs = [
-          { start: 146.83, end: 82.41, wave: 'sawtooth' },
-          { start: 207.65, end: 110.00, wave: 'sawtooth' },
-          { start: 73.42,  end: 41.20, wave: 'triangle' }
-        ];
-
-        creepyFreqs.forEach(cfg => {
-          const osc = audioCtx.createOscillator();
-          osc.type = cfg.wave;
-          osc.frequency.setValueAtTime(cfg.start, now);
-          osc.frequency.exponentialRampToValueAtTime(cfg.end, now + 0.72);
-          osc.connect(filter);
-          osc.start(now);
-          osc.stop(now + 0.75);
-        });
+        // 2. Phát ngay đoạn ghi âm "Sao mình ngu vậy" (sai.mp3) ở mức khuếch đại tối đa
+        const voiceEl = document.getElementById('wrong-voice-audio');
+        if (voiceEl) {
+          voiceEl.pause();
+          voiceEl.currentTime = 0;
+          voiceEl.volume = 1.0;
+          const playPromise = voiceEl.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(() => {
+              // Nếu chưa đặt file sai.mp3 cùng thư mục thì đọc to câu nói bằng giọng Việt
+              speakFallbackWrongPhrase();
+            });
+          }
+        } else {
+          speakFallbackWrongPhrase();
+        }
       } else if (type === 'select') {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
@@ -1665,7 +1713,7 @@
         playSound('wrong');
         openNoticeModal(
           `Chưa có dữ liệu Chương ${level}`,
-          `Kho câu hỏi Chương ${level} (mục tiêu ${TARGET_COUNTS[level]} câu) hiện đang trống. Hãy nạp file hoặc bấm nút "📥 Nạp / Dán Code Câu Hỏi" ở Trang chủ nhé!`
+          `Kho câu hỏi Chương ${level} (mục tiêu ${TARGET_COUNTS[level]} câu) hiện đang trống. Hãy đặt file dữ liệu cùng thư mục với file HTML nhé!`
         );
         return;
       }
