@@ -141,6 +141,7 @@
       font-weight: 600;
       font-size: 0.88rem;
       cursor: pointer;
+      touch-action: manipulation;
       transition: all 0.16s ease;
       display: inline-flex;
       align-items: center;
@@ -311,6 +312,7 @@
       padding: 16px 18px;
       color: var(--text-main);
       cursor: pointer;
+      touch-action: manipulation;
       transition: all 0.18s ease;
       display: flex;
       justify-content: space-between;
@@ -396,6 +398,7 @@
       font-size: 1.05rem;
       font-weight: 800;
       cursor: pointer;
+      touch-action: manipulation;
       transition: all 0.18s ease;
       box-shadow: 0 8px 25px rgba(234, 88, 12, 0.35);
       letter-spacing: 0.3px;
@@ -522,6 +525,9 @@
       color: var(--text-main);
       font-size: 0.98rem;
       cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
       transition: all 0.15s ease;
       display: flex;
       align-items: flex-start;
@@ -529,10 +535,12 @@
       line-height: 1.5;
     }
 
-    .option-btn:hover:not(:disabled) {
-      background: rgba(51, 65, 85, 0.88);
-      border-color: var(--accent-secondary);
-      transform: translateY(-1px);
+    @media (hover: hover) {
+      .option-btn:hover:not(:disabled) {
+        background: rgba(51, 65, 85, 0.88);
+        border-color: var(--accent-secondary);
+        transform: translateY(-1px);
+      }
     }
 
     .option-btn:disabled {
@@ -609,6 +617,7 @@
       font-weight: 600;
       font-size: 0.92rem;
       cursor: pointer;
+      touch-action: manipulation;
       transition: all 0.16s ease;
     }
 
@@ -679,6 +688,7 @@
       border: 1px solid rgba(148, 163, 184, 0.2);
       color: var(--text-muted);
       cursor: pointer;
+      touch-action: manipulation;
       font-weight: 600;
     }
 
@@ -707,6 +717,7 @@
       font-weight: 600;
       font-size: 0.8rem;
       cursor: pointer;
+      touch-action: manipulation;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1097,7 +1108,7 @@
             <span class="section-tag tag-exam">Phần 2 · Kiểm tra sát hạch</span>
             <h2>📝 Phòng Thi Thử Tổng Hợp (50 Câu / 60 Phút)</h2>
             <ul class="feature-list">
-              <li>🎲 Bốc ngẫu nhiên từ 600 câu: <strong>tối thiểu 15 câu Chương 1 + 15 câu Chương 2 + 15 câu Chương 3 + 5 câu ngẫu nhiên tổng hợp</strong>.</li>
+              <li>🎲 Bốc ngẫu nhiên từ 600 câu: <strong>tối thiểu 15 câu Chương 1 + 15 câu Chương 2 + 15 câu Chương 3 + 5 câu ngẫu nhiên tổng hợp</strong> (tráo cả thứ tự câu lẫn đáp án).</li>
               <li>⏱️ Đồng hồ đếm ngược <strong>60 phút</strong>; hết giờ tự động hú còi báo động và thu bài.</li>
               <li>📊 Nộp bài chấm điểm ngay (<strong>0.2đ/câu</strong>), thống kê số câu sai, chỉ rõ đáp án đúng.</li>
             </ul>
@@ -1107,7 +1118,7 @@
               <div class="exam-specs-grid">
                 <div class="spec-item">
                   <div class="s-label">Số lượng câu hỏi</div>
-                  <div class="s-val">50 câu ngẫu nhiên</div>
+                  <div class="s-val">50 câu (Tráo câu & đáp án)</div>
                 </div>
                 <div class="spec-item">
                   <div class="s-label">Thời gian làm bài</div>
@@ -1368,12 +1379,28 @@
     }
 
     function normalizeQuestion(item, defaultChapter, idx) {
+      let opts = [];
+      if (Array.isArray(item.options)) {
+        opts = item.options.slice();
+      } else if (item.options && typeof item.options === 'object') {
+        opts = prefixes.map(k => item.options[k]).filter(v => v !== undefined);
+      }
+
+      let ansIdx = 0;
+      const rawAns = item.ans !== undefined ? item.ans : item.correct;
+      if (typeof rawAns === 'number') {
+        ansIdx = rawAns;
+      } else if (typeof rawAns === 'string') {
+        const parsed = prefixes.indexOf(rawAns.trim().toUpperCase());
+        if (parsed !== -1) ansIdx = parsed;
+      }
+
       return {
         id: item.id !== undefined ? item.id : `${defaultChapter}.${idx + 1}`,
-        chapter: item.chapter || defaultChapter,
+        chapter: Number(item.chapter) || defaultChapter,
         q: item.q || item.question || "",
-        options: Array.isArray(item.options) ? item.options : [],
-        ans: typeof item.ans === 'number' ? item.ans : 0
+        options: opts,
+        ans: ansIdx
       };
     }
 
@@ -1566,6 +1593,35 @@
       return copy;
     }
 
+    // Tráo vị trí A, B, C, D của từng câu nhưng giữ nguyên nội dung đáp án đúng
+    function shuffleQuestionChoices(item) {
+      const opts = Array.isArray(item.options) ? item.options.slice() : [];
+      if (opts.length === 0) return { ...item };
+
+      const hasLetterPrefix = opts.length === 4 && opts.every((opt, i) =>
+        new RegExp(`^${prefixes[i]}[\\.\\)\\:\\-]\\s*`, 'i').test(String(opt).trim())
+      );
+
+      const mappedOpts = opts.map((rawText, idx) => {
+        const cleanText = hasLetterPrefix
+          ? String(rawText).trim().replace(new RegExp(`^${prefixes[idx]}[\\.\\)\\:\\-]\\s*`, 'i'), '')
+          : String(rawText);
+        return {
+          text: cleanText,
+          isCorrect: idx === item.ans
+        };
+      });
+
+      const shuffledOpts = shuffleArray(mappedOpts);
+      const newCorrectIdx = shuffledOpts.findIndex(o => o.isCorrect);
+
+      return {
+        ...item,
+        options: shuffledOpts.map(o => o.text),
+        ans: newCorrectIdx >= 0 ? newCorrectIdx : 0
+      };
+    }
+
     function goHome() {
       stopExamTimer();
       playSound('nav');
@@ -1669,18 +1725,9 @@
       ];
       const extra5 = shuffleArray(remainingPool).slice(0, 5);
 
-      const raw50 = shuffleArray([...picked1, ...picked2, ...picked3, ...extra5]).map(item => {
-        const mappedOpts = item.options.map((text, idx) => ({
-          text,
-          isCorrect: idx === item.ans
-        }));
-        const shuffledOpts = shuffleArray(mappedOpts);
-        return {
-          ...item,
-          options: shuffledOpts.map(o => o.text),
-          ans: shuffledOpts.findIndex(o => o.isCorrect)
-        };
-      });
+      // Tráo thứ tự 50 câu VÀ tráo đáp án A/B/C/D của từng câu (giữ nguyên đáp án đúng gốc)
+      const raw50 = shuffleArray([...picked1, ...picked2, ...picked3, ...extra5])
+        .map(item => shuffleQuestionChoices(item));
 
       isExamMode = true;
       examSubmitted = false;
@@ -1703,7 +1750,7 @@
       document.getElementById('main-header-title').textContent =
         "PHẦN 2: PHÒNG THI THỬ TRIẾT HỌC MÁC - LÊNIN (50 CÂU · 60 PHÚT)";
       document.getElementById('main-header-sub').textContent =
-        "Cấu trúc ngẫu nhiên chuẩn đề thi";
+        "Cấu trúc ngẫu nhiên chuẩn đề thi · Đã tráo câu hỏi và tráo đáp án";
 
       document.getElementById('pill-correct').style.display = 'none';
       document.getElementById('pill-wrong').style.display = 'none';
@@ -1785,6 +1832,7 @@
 
       item.options.forEach((optText, idx) => {
         const btn = document.createElement('button');
+        btn.type = 'button';
         btn.className = 'option-btn';
         btn.disabled = revealAnswer;
 
@@ -1803,10 +1851,37 @@
           <span>${optText}</span>
         `;
 
-        btn.onpointerdown = (e) => {
-          if (e.button !== undefined && e.button !== 0) return;
+        // Chống tích nhầm khi chạm vuốt cuộn trang trên điện thoại
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let isTouchMoved = false;
+
+        btn.addEventListener('touchstart', (e) => {
+          if (e.touches && e.touches.length > 0) {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            isTouchMoved = false;
+          }
+        }, { passive: true });
+
+        btn.addEventListener('touchmove', (e) => {
+          if (e.touches && e.touches.length > 0) {
+            const dx = Math.abs(e.touches[0].clientX - touchStartX);
+            const dy = Math.abs(e.touches[0].clientY - touchStartY);
+            if (dx > 10 || dy > 10) {
+              isTouchMoved = true;
+            }
+          }
+        }, { passive: true });
+
+        btn.onclick = () => {
+          if (isTouchMoved) {
+            isTouchMoved = false;
+            return;
+          }
           selectOption(idx);
         };
+
         optionsList.appendChild(btn);
       });
 
@@ -1943,18 +2018,7 @@
 
     function shuffleCurrentSession() {
       if (isExamMode) return;
-      activeQuestions = shuffleArray(originalSessionQuestions).map(item => {
-        const mappedOptions = item.options.map((text, idx) => ({
-          text,
-          isCorrect: idx === item.ans
-        }));
-        const shuffledOptions = shuffleArray(mappedOptions);
-        return {
-          ...item,
-          options: shuffledOptions.map(opt => opt.text),
-          ans: shuffledOptions.findIndex(opt => opt.isCorrect)
-        };
-      });
+      activeQuestions = shuffleArray(originalSessionQuestions).map(item => shuffleQuestionChoices(item));
       playSound('nav');
       resetCurrentSession();
     }
