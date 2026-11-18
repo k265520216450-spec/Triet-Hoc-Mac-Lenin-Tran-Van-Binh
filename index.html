@@ -1056,6 +1056,8 @@
 <body>
   <!-- FILE ÂM THANH KHI CHỌN SAI (Đặt file sai.mp3 cùng thư mục với file HTML) -->
   <audio id="wrong-voice-audio" src="sai.mp3" preload="auto"></audio>
+  <!-- FILE ÂM THANH KHI CHỌN SAI 3 LẦN LIÊN TIẾP Ở PHẦN ÔN TẬP (Đặt file sai3.mp3 cùng thư mục với file HTML) -->
+  <audio id="wrong3-voice-audio" src="sai3.mp3" preload="auto"></audio>
   <!-- FILE ÂM THANH DONATE PHÁT 1 LẦN KHI CHỌN MỨC CHƯƠNG (Đặt file donate.mp3 cùng thư mục với file HTML) -->
   <audio id="donate-voice-audio" src="donate.mp3" preload="auto"></audio>
 
@@ -1541,8 +1543,10 @@
     let soundEnabled = true;
     let audioCtx = null;
     let wrongVoiceConnected = false;
+    let wrong3VoiceConnected = false;
     let donateVoiceConnected = false;
     let hasPlayedDonateAudio = false; // Chỉ phát âm thanh donate đúng 1 lần duy nhất
+    let consecutiveWrongCount = 0;   // Đếm số câu chọn sai liên tiếp ở phần ôn tập
 
     function unlockAudio() {
       if (!audioCtx) {
@@ -1555,6 +1559,7 @@
         audioCtx.resume();
       }
       setupWrongVoiceBooster();
+      setupWrong3VoiceBooster();
       setupDonateVoiceBooster();
     }
 
@@ -1582,6 +1587,33 @@
         wrongVoiceConnected = true;
       } catch (e) {
         console.warn('Không thể nối bộ khuếch đại Web Audio cho sai.mp3:', e);
+      }
+    }
+
+    // Khuếch đại file sai3.mp3 khi sai 3 lần liên tiếp ở phần ôn tập
+    function setupWrong3VoiceBooster() {
+      if (wrong3VoiceConnected || !audioCtx) return;
+      const audioEl = document.getElementById('wrong3-voice-audio');
+      if (!audioEl) return;
+
+      try {
+        const source = audioCtx.createMediaElementSource(audioEl);
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.value = 3.2;
+
+        const compressor = audioCtx.createDynamicsCompressor();
+        compressor.threshold.setValueAtTime(-12, audioCtx.currentTime);
+        compressor.knee.setValueAtTime(10, audioCtx.currentTime);
+        compressor.ratio.setValueAtTime(12, audioCtx.currentTime);
+        compressor.attack.setValueAtTime(0.002, audioCtx.currentTime);
+        compressor.release.setValueAtTime(0.15, audioCtx.currentTime);
+
+        source.connect(gainNode);
+        gainNode.connect(compressor);
+        compressor.connect(audioCtx.destination);
+        wrong3VoiceConnected = true;
+      } catch (e) {
+        console.warn('Không thể nối bộ khuếch đại Web Audio cho sai3.mp3:', e);
       }
     }
 
@@ -1615,6 +1647,19 @@
         utter.volume = 1.0;
         utter.rate = 1.1;
         utter.pitch = 1.05;
+        window.speechSynthesis.speak(utter);
+      }
+    }
+
+    function speakFallbackWrong3Phrase() {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(
+          "Tôi chửi bạn cũng chỉ vì muốn tốt cho bạn thôi bạn ạ, nhưng mà bạn ngu thật, sai ba lần liên tiếp thì bạn hết cứu rồi."
+        );
+        utter.lang = 'vi-VN';
+        utter.volume = 1.0;
+        utter.rate = 1.05;
         window.speechSynthesis.speak(utter);
       }
     }
@@ -1709,6 +1754,44 @@
           }
         } else {
           speakFallbackWrongPhrase();
+        }
+      } else if (type === 'wrong3') {
+        // Dừng tiếng sai thường nếu đang phát
+        const wrongEl = document.getElementById('wrong-voice-audio');
+        if (wrongEl) {
+          wrongEl.pause();
+          wrongEl.currentTime = 0;
+        }
+
+        // Cú giật tiếng cảnh báo khi sai 3 lần liên tiếp
+        const shockOsc = audioCtx.createOscillator();
+        const shockGain = audioCtx.createGain();
+        shockOsc.type = 'sawtooth';
+        shockOsc.frequency.setValueAtTime(200, now);
+        shockOsc.frequency.exponentialRampToValueAtTime(50, now + 0.16);
+
+        shockGain.gain.setValueAtTime(0.95, now);
+        shockGain.gain.exponentialRampToValueAtTime(0.001, now + 0.17);
+
+        shockOsc.connect(shockGain);
+        shockGain.connect(audioCtx.destination);
+        shockOsc.start(now);
+        shockOsc.stop(now + 0.18);
+
+        // Phát đoạn ghi âm sai 3 lần liên tiếp (sai3.mp3)
+        const voice3El = document.getElementById('wrong3-voice-audio');
+        if (voice3El) {
+          voice3El.pause();
+          voice3El.currentTime = 0;
+          voice3El.volume = 1.0;
+          const playPromise = voice3El.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(() => {
+              speakFallbackWrong3Phrase();
+            });
+          }
+        } else {
+          speakFallbackWrong3Phrase();
         }
       } else if (type === 'select') {
         const osc = audioCtx.createOscillator();
@@ -1887,6 +1970,7 @@
       practiceShuffled = false;
       examSubmitted = false;
       currentPracticeLevel = level;
+      consecutiveWrongCount = 0;
 
       // Mặc định giữ nguyên thứ tự câu hỏi và thứ tự đáp án gốc
       originalSessionQuestions = JSON.parse(JSON.stringify(bank));
@@ -1971,6 +2055,7 @@
       isExamMode = true;
       practiceShuffled = false;
       examSubmitted = false;
+      consecutiveWrongCount = 0;
       originalSessionQuestions = JSON.parse(JSON.stringify(raw50));
       activeQuestions = JSON.parse(JSON.stringify(raw50));
       userAnswers = new Array(activeQuestions.length).fill(null);
@@ -2141,9 +2226,15 @@
         if (userAnswers[currentIndex] !== null) return;
         userAnswers[currentIndex] = optIndex;
         if (optIndex === activeQuestions[currentIndex].ans) {
+          consecutiveWrongCount = 0;
           playSound('correct');
         } else {
-          playSound('wrong');
+          consecutiveWrongCount++;
+          if (consecutiveWrongCount >= 3 && consecutiveWrongCount % 3 === 0) {
+            playSound('wrong3');
+          } else {
+            playSound('wrong');
+          }
         }
         renderQuestion();
       } else {
@@ -2281,6 +2372,7 @@
         startExamMode();
         return;
       }
+      consecutiveWrongCount = 0;
       userAnswers = new Array(activeQuestions.length).fill(null);
       currentIndex = 0;
       currentFilter = 'all';
