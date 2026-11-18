@@ -79,6 +79,66 @@
       gap: 10px;
       flex-wrap: wrap;
       align-items: center;
+      justify-content: flex-end;
+    }
+
+    /* KHUNG STK NGÂN HÀNG NỔI BẬT GÓC TRÊN BÊN PHẢI */
+    .bank-donate-pill {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.24), rgba(234, 88, 12, 0.3));
+      border: 1.5px solid #fbbf24;
+      border-radius: 12px;
+      padding: 8px 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      touch-action: manipulation;
+      box-shadow: 0 0 18px rgba(251, 191, 36, 0.32);
+      transition: all 0.18s ease;
+    }
+
+    .bank-donate-pill:hover {
+      transform: translateY(-1px);
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.35), rgba(234, 88, 12, 0.42));
+      box-shadow: 0 0 24px rgba(251, 191, 36, 0.55);
+    }
+
+    .bank-donate-info {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.25;
+    }
+
+    .bank-donate-title {
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #fde68a;
+    }
+
+    .bank-donate-stk {
+      font-size: 0.98rem;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: 0.4px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .bank-copy-tag {
+      background: #fbbf24;
+      color: #1e1b4b;
+      font-size: 0.74rem;
+      font-weight: 800;
+      padding: 4px 8px;
+      border-radius: 6px;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+
+    .bank-copy-tag.copied {
+      background: #10b981;
+      color: #052e16;
     }
 
     .stat-pill {
@@ -996,6 +1056,8 @@
 <body>
   <!-- FILE ÂM THANH KHI CHỌN SAI (Đặt file sai.mp3 cùng thư mục với file HTML) -->
   <audio id="wrong-voice-audio" src="sai.mp3" preload="auto"></audio>
+  <!-- FILE ÂM THANH DONATE PHÁT 1 LẦN KHI CHỌN MỨC CHƯƠNG (Đặt file donate.mp3 cùng thư mục với file HTML) -->
+  <audio id="donate-voice-audio" src="donate.mp3" preload="auto"></audio>
 
   <div class="container">
     <!-- HEADER CHUNG -->
@@ -1005,6 +1067,15 @@
         <p id="main-header-sub">Ngân hàng 600 câu hỏi chuẩn · Chương 1 (95 câu) · Chương 2 (240 câu) · Chương 3 (265 câu)</p>
       </div>
       <div class="header-right">
+        <!-- KHUNG SỐ TÀI KHOẢN NGÂN HÀNG GÓC TRÊN BÊN PHẢI -->
+        <div class="bank-donate-pill" onclick="copyBankAccount()" title="Bấm để sao chép số tài khoản MB Bank">
+          <div class="bank-donate-info">
+            <span class="bank-donate-title">🏦 Ủng hộ tác giả · MB BANK</span>
+            <span class="bank-donate-stk">STK: 0964952492</span>
+          </div>
+          <span class="bank-copy-tag" id="bank-copy-badge">Copy</span>
+        </div>
+
         <div class="timer-pill" id="exam-timer-pill">
           ⏱️ <span id="timer-display">60:00</span>
         </div>
@@ -1021,7 +1092,6 @@
       <section class="bank-status-card">
         <div class="bank-status-top">
           <h2>📦 Trạng thái dữ liệu ngân hàng câu hỏi (Tổng mục tiêu: 600 câu)</h2>
-          <!-- Đã ẩn 2 nút Nạp / Dán Code Câu Hỏi và Xóa bộ nhớ tạm -->
           <div style="display: none; gap: 8px; flex-wrap: wrap;">
             <button class="tool-btn" onclick="openImportModal()">📥 Nạp / Dán Code Câu Hỏi</button>
             <button class="tool-btn" onclick="clearImportedStorage()" title="Xóa dữ liệu đã dán trong trình duyệt">🗑️ Xóa bộ nhớ tạm</button>
@@ -1285,6 +1355,42 @@
   <script src="chuong3.js" onerror="void 0"></script>
 
   <script>
+    // ==================== COPY SỐ TÀI KHOẢN NGÂN HÀNG ====================
+    function copyBankAccount() {
+      const stk = "0964952492";
+      const badge = document.getElementById('bank-copy-badge');
+      const showCopiedUI = () => {
+        badge.textContent = "Đã copy!";
+        badge.classList.add('copied');
+        playSound('select');
+        setTimeout(() => {
+          badge.textContent = "Copy";
+          badge.classList.remove('copied');
+        }, 2000);
+      };
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(stk).then(showCopiedUI).catch(() => {
+          fallbackCopyText(stk);
+          showCopiedUI();
+        });
+      } else {
+        fallbackCopyText(stk);
+        showCopiedUI();
+      }
+    }
+
+    function fallbackCopyText(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+
     // ==================== KHỞI TẠO & ĐỒNG BỘ KHO DỮ LIỆU ====================
     const TARGET_COUNTS = { 1: 95, 2: 240, 3: 265 };
     const CHAPTER_NAMES = {
@@ -1435,6 +1541,8 @@
     let soundEnabled = true;
     let audioCtx = null;
     let wrongVoiceConnected = false;
+    let donateVoiceConnected = false;
+    let hasPlayedDonateAudio = false; // Chỉ phát âm thanh donate đúng 1 lần duy nhất
 
     function unlockAudio() {
       if (!audioCtx) {
@@ -1447,6 +1555,7 @@
         audioCtx.resume();
       }
       setupWrongVoiceBooster();
+      setupDonateVoiceBooster();
     }
 
     // Khuếch đại file sai.mp3 lên 400% qua Web Audio API để phát cực to
@@ -1458,7 +1567,7 @@
       try {
         const source = audioCtx.createMediaElementSource(audioEl);
         const gainNode = audioCtx.createGain();
-        gainNode.gain.value = 4.0; // Kích âm lượng lên gấp 4 lần
+        gainNode.gain.value = 4.0;
 
         const compressor = audioCtx.createDynamicsCompressor();
         compressor.threshold.setValueAtTime(-12, audioCtx.currentTime);
@@ -1476,6 +1585,24 @@
       }
     }
 
+    // Khuếch đại file donate.mp3 cho rõ nét
+    function setupDonateVoiceBooster() {
+      if (donateVoiceConnected || !audioCtx) return;
+      const donateEl = document.getElementById('donate-voice-audio');
+      if (!donateEl) return;
+
+      try {
+        const source = audioCtx.createMediaElementSource(donateEl);
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.value = 2.2;
+        source.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        donateVoiceConnected = true;
+      } catch (e) {
+        console.warn('Không thể nối bộ khuếch đại Web Audio cho donate.mp3:', e);
+      }
+    }
+
     ['pointerdown', 'touchstart', 'keydown'].forEach(evt => {
       document.addEventListener(evt, unlockAudio, { passive: true });
     });
@@ -1490,6 +1617,44 @@
         utter.pitch = 1.05;
         window.speechSynthesis.speak(utter);
       }
+    }
+
+    function speakFallbackDonatePhrase() {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(
+          "Có tiền thì nạp tiền donate cho tao, ít thì hai nghìn, nhiều thì năm nghìn, nạp ủng hộ tao, tao làm hết một ngày mới được web này đấy."
+        );
+        utter.lang = 'vi-VN';
+        utter.volume = 1.0;
+        utter.rate = 1.05;
+        window.speechSynthesis.speak(utter);
+      }
+    }
+
+    // Phát âm thanh xin donate duy nhất 1 lần lúc chọn mức chương
+    function playDonateOnce() {
+      if (hasPlayedDonateAudio) return false;
+      hasPlayedDonateAudio = true;
+
+      if (!soundEnabled) return true;
+      unlockAudio();
+
+      const donateEl = document.getElementById('donate-voice-audio');
+      if (donateEl) {
+        donateEl.pause();
+        donateEl.currentTime = 0;
+        donateEl.volume = 1.0;
+        const playPromise = donateEl.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {
+            speakFallbackDonatePhrase();
+          });
+        }
+      } else {
+        speakFallbackDonatePhrase();
+      }
+      return true;
     }
 
     function playSound(type) {
@@ -1539,7 +1704,6 @@
           const playPromise = voiceEl.play();
           if (playPromise !== undefined) {
             playPromise.catch(() => {
-              // Nếu chưa đặt file sai.mp3 cùng thư mục thì đọc to câu nói bằng giọng Việt
               speakFallbackWrongPhrase();
             });
           }
@@ -1752,7 +1916,12 @@
       document.getElementById('pill-wrong').style.display = 'block';
       document.getElementById('pill-progress').style.display = 'block';
 
-      playSound('nav');
+      // Chỉ phát âm thanh xin donate 1 lần duy nhất ở lần chọn mức chương đầu tiên
+      const playedDonate = playDonateOnce();
+      if (!playedDonate) {
+        playSound('nav');
+      }
+
       renderQuestion();
     }
 
