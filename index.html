@@ -22,9 +22,6 @@
       --wrong-text: #f87171;
       --selected-bg: rgba(99, 102, 241, 0.24);
       --selected-border: #818cf8;
-      --hint-bg: rgba(245, 158, 11, 0.12);
-      --hint-border: #f59e0b;
-      --hint-text: #fbbf24;
     }
 
     * {
@@ -501,45 +498,6 @@
       font-weight: 600;
     }
 
-    /* KHUNG GỢI Ý SUY LUẬN (CHỈ CÓ Ở PHẦN ÔN TẬP) */
-    .hint-area {
-      margin-bottom: 16px;
-    }
-
-    .btn-hint {
-      background: var(--hint-bg);
-      border: 1px solid rgba(245, 158, 11, 0.45);
-      color: var(--hint-text);
-      padding: 7px 14px;
-      border-radius: 10px;
-      font-size: 0.86rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .btn-hint:hover {
-      background: rgba(245, 158, 11, 0.22);
-    }
-
-    .hint-box {
-      margin-top: 10px;
-      padding: 12px 15px;
-      border-radius: 10px;
-      background: rgba(245, 158, 11, 0.1);
-      border-left: 4px solid var(--hint-border);
-      color: #fde68a;
-      font-size: 0.92rem;
-      display: none;
-    }
-
-    .hint-box.show {
-      display: block;
-    }
-
     .q-text {
       font-size: 1.08rem;
       font-weight: 500;
@@ -629,64 +587,6 @@
       background: var(--wrong-border);
       color: #fff;
       border-color: var(--wrong-border);
-    }
-
-    /* HỘP GIẢI THÍCH CHI TIẾT (VÌ SAO ĐÚNG / VÌ SAO SAI / MẸO NHỚ) */
-    .explanation-box {
-      margin-top: 20px;
-      padding: 18px;
-      border-radius: 12px;
-      background: rgba(15, 23, 42, 0.92);
-      border: 1px solid rgba(56, 189, 248, 0.35);
-      border-left: 4px solid var(--accent-secondary);
-      font-size: 0.94rem;
-      color: #e2e8f0;
-      display: none;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .explanation-box.show {
-      display: flex;
-    }
-
-    .exp-block-right {
-      background: rgba(16, 185, 129, 0.1);
-      border: 1px solid rgba(16, 185, 129, 0.28);
-      padding: 10px 14px;
-      border-radius: 8px;
-    }
-
-    .exp-block-right strong {
-      color: #34d399;
-      display: block;
-      margin-bottom: 3px;
-    }
-
-    .exp-block-wrong {
-      background: rgba(239, 68, 68, 0.09);
-      border: 1px solid rgba(239, 68, 68, 0.25);
-      padding: 10px 14px;
-      border-radius: 8px;
-    }
-
-    .exp-block-wrong strong {
-      color: #f87171;
-      display: block;
-      margin-bottom: 3px;
-    }
-
-    .exp-block-tip {
-      background: rgba(245, 158, 11, 0.1);
-      border: 1px solid rgba(245, 158, 11, 0.3);
-      padding: 10px 14px;
-      border-radius: 8px;
-    }
-
-    .exp-block-tip strong {
-      color: #fbbf24;
-      display: block;
-      margin-bottom: 3px;
     }
 
     .nav-controls {
@@ -1151,8 +1051,7 @@
             <ul class="feature-list">
               <li>✅ Chọn đáp án báo <strong>Đúng / Sai ngay lập tức</strong> với độ trễ âm thanh <strong>0 giây</strong>.</li>
               <li>👻 Chọn đúng có chuông vang đặc trưng; chọn sai phát <strong>âm thanh rùng rợn</strong>.</li>
-              <li>💡 Có nút <strong>Gợi ý suy luận</strong> ở từng câu để tự luận ra đáp án.</li>
-              <li>🧠 Giải thích cặn kẽ: <strong>Vì sao đúng · Vì sao sai · Mẹo nhớ nhanh lần sau</strong>.</li>
+              <li>⚡ Tự luyện tập tốc độ cao để ghi nhớ lý luận cốt lõi từng chương.</li>
             </ul>
           </div>
 
@@ -1200,8 +1099,7 @@
             <ul class="feature-list">
               <li>🎲 Bốc ngẫu nhiên từ 600 câu: <strong>tối thiểu 15 câu Chương 1 + 15 câu Chương 2 + 15 câu Chương 3 + 5 câu ngẫu nhiên tổng hợp</strong>.</li>
               <li>⏱️ Đồng hồ đếm ngược <strong>60 phút</strong>; hết giờ tự động hú còi báo động và thu bài.</li>
-              <li>🚫 Không có gợi ý hay hướng dẫn trong lúc làm bài; có âm thanh chọn bài & chọn đáp án.</li>
-              <li>📊 Nộp bài chấm điểm ngay (<strong>0.2đ/câu</strong>), thống kê số câu sai, chỉ rõ <strong>vì sao sai</strong> và đưa ra <strong>đáp án đúng</strong>.</li>
+              <li>📊 Nộp bài chấm điểm ngay (<strong>0.2đ/câu</strong>), thống kê số câu sai, chỉ rõ đáp án đúng.</li>
             </ul>
 
             <div class="exam-specs-box">
@@ -1277,7 +1175,7 @@
           </div>
         </div>
         <div id="wrong-review-section">
-          <div class="wrong-review-title" id="wrong-review-title">Chi tiết các câu làm sai & Giải thích:</div>
+          <div class="wrong-review-title" id="wrong-review-title">Chi tiết các câu làm sai:</div>
           <div class="wrong-list" id="wrong-list"></div>
         </div>
       </section>
@@ -1292,31 +1190,9 @@
             <span class="q-progress-text" id="q-index-label">Câu 1 / 95</span>
           </div>
 
-          <!-- NÚT GỢI Ý SUY LUẬN (CHỈ HIỆN TRONG CHẾ ĐỘ ÔN TẬP) -->
-          <div class="hint-area" id="hint-area">
-            <button class="btn-hint" id="btn-toggle-hint" onclick="toggleHint()">💡 Xem gợi ý suy luận</button>
-            <div class="hint-box" id="hint-box"></div>
-          </div>
-
           <div class="q-text" id="q-text">Đang tải câu hỏi...</div>
 
           <div class="options-list" id="options-list"></div>
-
-          <!-- KHUNG GIẢI THÍCH CHI TIẾT -->
-          <div class="explanation-box" id="explanation-box">
-            <div class="exp-block-right">
-              <strong>✅ Vì sao đáp án này đúng:</strong>
-              <span id="exp-right-text"></span>
-            </div>
-            <div class="exp-block-wrong" id="exp-wrong-block">
-              <strong>❌ Vì sao các phương án khác sai:</strong>
-              <span id="exp-wrong-text"></span>
-            </div>
-            <div class="exp-block-tip" id="exp-tip-block">
-              <strong>🧠 Mẹo nhớ nhanh lần sau:</strong>
-              <span id="exp-tip-text"></span>
-            </div>
-          </div>
 
           <div class="nav-controls">
             <button class="btn" id="btn-prev" onclick="prevQuestion()">← Câu trước</button>
@@ -1374,7 +1250,7 @@
           <option value="3">Chương 3 (Mục tiêu: 265 câu)</option>
         </select>
       </div>
-      <textarea class="modal-textarea" id="import-textarea" placeholder='Dán code mảng câu hỏi vào đây... Ví dụ: [{"id":"1.1","chapter":1,"q":"...","options":["A","B","C","D"],"ans":2,"hint":"...","expRight":"...","expWrong":"...","tip":"..."}]'></textarea>
+      <textarea class="modal-textarea" id="import-textarea" placeholder='Dán code mảng câu hỏi vào đây... Ví dụ: [{"id":"1.1","chapter":1,"q":"...","options":["A","B","C","D"],"ans":2}]'></textarea>
       <div class="modal-footer">
         <button class="btn" onclick="closeImportModal()">Đóng</button>
         <button class="btn btn-primary" onclick="processImportData()">✅ Nạp & Lưu Dữ Liệu</button>
@@ -1395,9 +1271,9 @@
 
   <!-- KHU VỰC KHAI BÁO KHO DỮ LIỆU 3 CHƯƠNG -->
   <script>
-    window.BANK_CHUONG_1 = []; // Sẽ nạp đủ 95 câu Chương 1
-    window.BANK_CHUONG_2 = []; // Sẽ nạp đủ 240 câu Chương 2
-    window.BANK_CHUONG_3 = []; // Sẽ nạp đủ 265 câu Chương 3
+    window.BANK_CHUONG_1 = []; 
+    window.BANK_CHUONG_2 = []; 
+    window.BANK_CHUONG_3 = []; 
   </script>
   <script src="chuong1.js" onerror="void 0"></script>
   <script src="chuong2.js" onerror="void 0"></script>
@@ -1414,7 +1290,6 @@
     const prefixes = ['A', 'B', 'C', 'D'];
     const ANSWER_FILES = ['ans_1.json', 'ans_2.json', 'ans_3.json', 'ans_4.json', 'ans_5.json', 'ans_6.json'];
 
-    // Tự động đọc questions_triet.json + ghép 6 file đáp án ans_1.json .. ans_6.json
     async function loadExternalJsonBanks() {
       try {
         const qRes = await fetch('questions_triet.json');
@@ -1448,23 +1323,17 @@
             ansIdx = prefixes.indexOf(rawAns.trim().toUpperCase());
           }
 
-          // Chỉ đưa vào ngân hàng sẵn sàng những câu đã được nạp đáp án từ ans_1..6.json
           if (ansIdx >= 0 && ansIdx <= 3 && grouped[ch]) {
             const optsArray = Array.isArray(item.options)
               ? item.options
               : [item.options?.A || '', item.options?.B || '', item.options?.C || '', item.options?.D || ''];
 
-            const objEntry = typeof entry === 'object' && entry !== null ? entry : {};
             grouped[ch].push({
               id: item.id,
               chapter: ch,
               q: item.question || item.q || '',
               options: optsArray,
-              ans: ansIdx,
-              hint: objEntry.hint || item.hint,
-              expRight: objEntry.expRight || objEntry.exp || item.expRight,
-              expWrong: objEntry.expWrong || item.expWrong,
-              tip: objEntry.tip || item.tip
+              ans: ansIdx
             });
           }
         });
@@ -1477,7 +1346,7 @@
 
         updateHomeBankStatus();
       } catch (e) {
-        console.warn('Chưa tải được file JSON ngoài (chạy offline hoặc chưa đẩy file):', e);
+        console.warn('Chưa tải được file JSON ngoài:', e);
       }
     }
 
@@ -1504,11 +1373,7 @@
         chapter: item.chapter || defaultChapter,
         q: item.q || item.question || "",
         options: Array.isArray(item.options) ? item.options : [],
-        ans: typeof item.ans === 'number' ? item.ans : 0,
-        hint: item.hint || "Hãy đọc kỹ từ khóa trọng tâm trong câu hỏi và đối chiếu với nguyên lý/phạm trù tương ứng.",
-        expRight: item.expRight || item.exp || "Đây là phương án phản ánh chính xác nội dung lý luận trong giáo trình Triết học Mác – Lênin.",
-        expWrong: item.expWrong || "Các phương án còn lại diễn đạt sai lệch, phiến diện hoặc nhầm lẫn với khái niệm khác.",
-        tip: item.tip || "Gạch chân từ khóa cốt lõi ở câu dẫn để loại trừ nhanh các phương án gây nhiễu."
+        ans: typeof item.ans === 'number' ? item.ans : 0
       };
     }
 
@@ -1701,7 +1566,6 @@
       return copy;
     }
 
-    // ==================== ĐIỀU HƯỚNG TRANG CHỦ / ÔN TẬP / THI ====================
     function goHome() {
       stopExamTimer();
       playSound('nav');
@@ -1725,7 +1589,7 @@
         playSound('wrong');
         openNoticeModal(
           `Chưa có dữ liệu Chương ${level}`,
-          `Kho câu hỏi Chương ${level} (mục tiêu ${TARGET_COUNTS[level]} câu) hiện đang trống. Hãy đẩy file questions_triet.json cùng các file đáp án ans_1.json..ans_6.json lên GitHub hoặc bấm nút "📥 Nạp / Dán Code Câu Hỏi" ở Trang chủ nhé!`
+          `Kho câu hỏi Chương ${level} (mục tiêu ${TARGET_COUNTS[level]} câu) hiện đang trống. Hãy nạp file hoặc bấm nút "📥 Nạp / Dán Code Câu Hỏi" ở Trang chủ nhé!`
         );
         return;
       }
@@ -1749,7 +1613,7 @@
       document.getElementById('main-header-title').textContent =
         `PHẦN 1: ÔN TẬP MỨC ${level} · ${CHAPTER_NAMES[level].toUpperCase()}`;
       document.getElementById('main-header-sub').textContent =
-        `Chế độ ôn tập có gợi ý suy luận & giải thích chi tiết · Tổng số: ${activeQuestions.length}/${TARGET_COUNTS[level]} câu`;
+        `Chế độ ôn tập luyện tập nhanh · Tổng số: ${activeQuestions.length}/${TARGET_COUNTS[level]} câu`;
 
       [1, 2, 3].forEach(lvl => {
         const btn = document.getElementById(`ws-lvl-${lvl}`);
@@ -1776,7 +1640,7 @@
         playSound('wrong');
         openNoticeModal(
           "Chưa nạp ngân hàng câu hỏi",
-          "Hiện chưa có câu hỏi nào trong ngân hàng 600 câu. Hãy nạp dữ liệu Chương 1, 2, 3 trước khi bắt đầu bài thi thử 50 câu nhé!"
+          "Hiện chưa có câu hỏi nào trong ngân hàng 600 câu. Hãy nạp dữ liệu Chương 1, 2, 3 trước khi bắt đầu bài thi thử nhé!"
         );
         return;
       }
@@ -1785,7 +1649,7 @@
         playSound('wrong');
         openNoticeModal(
           "Chưa đủ số câu tối thiểu mỗi chương để tạo đề thi",
-          `Quy định đề thi 50 câu yêu cầu mỗi chương phải có ít nhất 15 câu (hiện tại: Chương 1 có ${b1.length} câu, Chương 2 có ${b2.length} câu, Chương 3 có ${b3.length} câu). Hãy nạp đủ các file ans_1..6.json rồi bắt đầu thi!`
+          `Quy định đề thi 50 câu yêu cầu mỗi chương phải có ít nhất 15 câu (hiện tại: C1: ${b1.length}, C2: ${b2.length}, C3: ${b3.length}).`
         );
         return;
       }
@@ -1839,7 +1703,7 @@
       document.getElementById('main-header-title').textContent =
         "PHẦN 2: PHÒNG THI THỬ TRIẾT HỌC MÁC - LÊNIN (50 CÂU · 60 PHÚT)";
       document.getElementById('main-header-sub').textContent =
-        "Cấu trúc ngẫu nhiên: ≥15 câu Chương 1 · ≥15 câu Chương 2 · ≥15 câu Chương 3 · 5 câu tổng hợp";
+        "Cấu trúc ngẫu nhiên chuẩn đề thi";
 
       document.getElementById('pill-correct').style.display = 'none';
       document.getElementById('pill-wrong').style.display = 'none';
@@ -1850,7 +1714,6 @@
       renderQuestion();
     }
 
-    // ==================== ĐỒNG HỒ ĐẾM NGƯỢC 60 PHÚT ====================
     function startExamTimer() {
       stopExamTimer();
       timeRemaining = EXAM_DURATION_SECONDS;
@@ -1903,7 +1766,6 @@
       return `${String(mins).padStart(2, '0')} phút ${String(secs).padStart(2, '0')} giây`;
     }
 
-    // ==================== HIỂN THỊ & TƯƠNG TÁC CÂU HỎI ====================
     function renderQuestion() {
       const item = activeQuestions[currentIndex];
       if (!item) return;
@@ -1914,19 +1776,6 @@
       document.getElementById('q-index-label').textContent =
         `Câu ${currentIndex + 1} / ${activeQuestions.length}`;
       document.getElementById('q-text').textContent = item.q;
-
-      const hintArea = document.getElementById('hint-area');
-      const hintBox = document.getElementById('hint-box');
-      const hintBtn = document.getElementById('btn-toggle-hint');
-      if (!isExamMode) {
-        hintArea.style.display = 'block';
-        hintBox.classList.remove('show');
-        hintBox.innerHTML = `<strong>💡 Gợi ý tư duy:</strong> ${item.hint}`;
-        hintBtn.textContent = '💡 Xem gợi ý suy luận';
-      } else {
-        hintArea.style.display = 'none';
-        hintBox.classList.remove('show');
-      }
 
       const optionsList = document.getElementById('options-list');
       optionsList.innerHTML = '';
@@ -1961,17 +1810,6 @@
         optionsList.appendChild(btn);
       });
 
-      const expBox = document.getElementById('explanation-box');
-      if (revealAnswer) {
-        document.getElementById('exp-right-text').textContent = item.expRight;
-        document.getElementById('exp-wrong-text').textContent = item.expWrong;
-        document.getElementById('exp-tip-text').textContent = item.tip;
-        document.getElementById('exp-tip-block').style.display = isExamMode ? 'none' : 'block';
-        expBox.classList.add('show');
-      } else {
-        expBox.classList.remove('show');
-      }
-
       document.getElementById('btn-prev').disabled = currentIndex === 0;
       document.getElementById('btn-next').disabled = currentIndex === activeQuestions.length - 1;
 
@@ -1981,15 +1819,6 @@
 
       updateStats();
       renderGrid();
-    }
-
-    function toggleHint() {
-      if (isExamMode) return;
-      const hintBox = document.getElementById('hint-box');
-      const hintBtn = document.getElementById('btn-toggle-hint');
-      const isShown = hintBox.classList.toggle('show');
-      hintBtn.textContent = isShown ? '🙈 Ẩn gợi ý' : '💡 Xem gợi ý suy luận';
-      playSound('nav');
     }
 
     function selectOption(optIndex) {
@@ -2144,7 +1973,6 @@
       renderQuestion();
     }
 
-    // ==================== XỬ LÝ NỘP BÀI THI 60 PHÚT ====================
     function requestSubmitExam() {
       const unansweredCount = userAnswers.filter(a => a === null).length;
       if (unansweredCount > 0) {
@@ -2184,9 +2012,7 @@
             q: item.q,
             options: item.options,
             userChoice: userChoice,
-            ans: item.ans,
-            expRight: item.expRight,
-            expWrong: item.expWrong
+            ans: item.ans
           });
         }
       });
@@ -2214,7 +2040,7 @@
         wrongTitleEl.textContent = '🎉 Xuất sắc! Bạn đạt điểm tuyệt đối 10/10!';
       } else {
         wrongTitleEl.style.color = '#f87171';
-        wrongTitleEl.textContent = `❌ Bạn làm sai / bỏ trống ${wrongItems.length} câu (Chi tiết đáp án đúng & phân tích lỗi sai):`;
+        wrongTitleEl.textContent = `❌ Bạn làm sai / bỏ trống ${wrongItems.length} câu (Chi tiết đáp án đúng):`;
 
         wrongItems.forEach(w => {
           const card = document.createElement('div');
@@ -2233,10 +2059,6 @@
             <div class="wrong-item-q">${w.q}</div>
             <div class="wrong-item-ans user-picked"><strong>Bạn chọn:</strong> ${userText}</div>
             <div class="wrong-item-ans right-picked"><strong>Đáp án đúng:</strong> ${correctText}</div>
-            <div class="wrong-item-exp">
-              <div><strong>Vì sao đáp án đúng chính xác:</strong> ${w.expRight}</div>
-              <div style="margin-top: 6px;"><strong>Phân tích lỗi sai:</strong> ${w.expWrong}</div>
-            </div>
           `;
           wrongListEl.appendChild(card);
         });
@@ -2249,7 +2071,6 @@
       renderQuestion();
     }
 
-    // ==================== NẠP DỮ LIỆU TRỰC TIẾP QUA GIAO DIỆN ====================
     function openImportModal() {
       document.getElementById('import-textarea').value = '';
       document.getElementById('import-modal').classList.add('show');
@@ -2289,7 +2110,7 @@
         playSound('correct');
         openNoticeModal(
           "Nạp dữ liệu thành công!",
-          `Đã nạp thành công ${parsedArray.length} câu hỏi vào Chương ${ch} (Mục tiêu: ${TARGET_COUNTS[ch]} câu) và lưu tự động trên trình duyệt.`
+          `Đã nạp thành công ${parsedArray.length} câu hỏi vào Chương ${ch} (Mục tiêu: ${TARGET_COUNTS[ch]} câu).`
         );
       } catch (err) {
         playSound('wrong');
@@ -2317,7 +2138,6 @@
       document.getElementById('notice-modal').classList.remove('show');
     }
 
-    // ==================== KHỞI CHẠY TRANG CHỦ ====================
     loadSavedBanksFromStorage();
     updateHomeBankStatus();
     loadExternalJsonBanks();
