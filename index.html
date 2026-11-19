@@ -1298,6 +1298,7 @@
           <button class="tool-btn" id="ws-lvl-3" onclick="startPracticeLevel(3)" style="display: none;">Mức 3: Chương 3 (265)</button>
         </div>
         <div class="tool-actions">
+          <button class="tool-btn active-mode" id="btn-auto-next" onclick="toggleAutoNext()">⏩ Tự chuyển câu: Bật</button>
           <button class="tool-btn" id="btn-shuffle" onclick="togglePracticeShuffle()">🔀 Tráo câu hỏi & đáp án</button>
           <button class="tool-btn" onclick="resetCurrentSession()">🔄 Làm lại phiên này</button>
         </div>
@@ -1391,7 +1392,7 @@
     </div>
   </div>
 
-  <!-- MODAL NẠP DỮ LIỆU CÂU HỎI TRỰC TIẾP -->
+  <!-- MODAL NẠP DỮ LIỆU CÂU HỎI & THÔNG BÁO -->
   <div class="modal-backdrop" id="import-modal">
     <div class="modal-box">
       <h3>📥 Nạp Code Ngân Hàng Câu Hỏi Vào Trang Chủ</h3>
@@ -1630,10 +1631,9 @@
     let exit1VoiceConnected = false;
     let exit2VoiceConnected = false;
     let horrorVoiceConnected = false;
-    let hasPlayedDonateAudio = false; // Chỉ phát âm thanh donate đúng 1 lần duy nhất
-    let consecutiveWrongCount = 0;   // Đếm số câu chọn sai liên tiếp ở phần ôn tập
+    let hasPlayedDonateAudio = false;
+    let consecutiveWrongCount = 0;
 
-    // Biến trạng thái chặn thoát & hù kinh dị trong phần thi
     let examExitAttemptCount = 0;
     let horrorSequenceActive = false;
     let horrorTriggeredInCurrentSequence = false;
@@ -1658,7 +1658,6 @@
       setupExamExitBoosters();
     }
 
-    // Khuếch đại file dung.mp3 (hiệu ứng âm thanh mới khi chọn đúng ở phần ôn tập)
     function setupCorrectVoiceBooster() {
       if (correctVoiceConnected || !audioCtx) return;
       const audioEl = document.getElementById('correct-voice-audio');
@@ -1685,7 +1684,6 @@
       }
     }
 
-    // Khuếch đại file sai.mp3 lên 400% qua Web Audio API để phát cực to
     function setupWrongVoiceBooster() {
       if (wrongVoiceConnected || !audioCtx) return;
       const audioEl = document.getElementById('wrong-voice-audio');
@@ -1712,7 +1710,6 @@
       }
     }
 
-    // Khuếch đại file sai2.mp3 ("Cái gì vậy bà nội?") khi sai 2 lần liên tiếp ở phần ôn tập
     function setupWrong2VoiceBooster() {
       if (wrong2VoiceConnected || !audioCtx) return;
       const audioEl = document.getElementById('wrong2-voice-audio');
@@ -1739,7 +1736,6 @@
       }
     }
 
-    // Khuếch đại file sai3.mp3 khi sai 3 lần liên tiếp ở phần ôn tập
     function setupWrong3VoiceBooster() {
       if (wrong3VoiceConnected || !audioCtx) return;
       const audioEl = document.getElementById('wrong3-voice-audio');
@@ -1766,7 +1762,6 @@
       }
     }
 
-    // Khuếch đại file dung_sau_sai3.mp3 khi chọn đúng câu tiếp theo sau chuỗi sai 3 lần liên tiếp
     function setupCorrectAfterWrong3Booster() {
       if (correctAfterWrong3Connected || !audioCtx) return;
       const audioEl = document.getElementById('correct-after-wrong3-audio');
@@ -1793,7 +1788,6 @@
       }
     }
 
-    // Khuếch đại file donate.mp3 cho rõ nét
     function setupDonateVoiceBooster() {
       if (donateVoiceConnected || !audioCtx) return;
       const donateEl = document.getElementById('donate-voice-audio');
@@ -1811,7 +1805,6 @@
       }
     }
 
-    // Khuếch đại 3 file âm thanh chặn thoát & hù kinh dị trong phần thi
     function setupExamExitBoosters() {
       if (!audioCtx) return;
 
@@ -1844,7 +1837,7 @@
         try {
           const src = audioCtx.createMediaElementSource(h3);
           const gain = audioCtx.createGain();
-          gain.gain.value = 5.5; // Khuếch đại loa cực to để hù người thoát
+          gain.gain.value = 5.5;
 
           const compressor = audioCtx.createDynamicsCompressor();
           compressor.threshold.setValueAtTime(-16, audioCtx.currentTime);
@@ -1909,7 +1902,6 @@
       }
     }
 
-    // Kích hoạt âm thanh thứ 3 (kinh dị 2.mp3) loa cực to + màn hình nhấp nháy kinh dị liên tục
     function triggerHorrorJumpscare() {
       if (horrorTriggeredInCurrentSequence) return;
       horrorTriggeredInCurrentSequence = true;
@@ -1927,7 +1919,6 @@
       unlockAudio();
       const h3 = document.getElementById('exam-horror-audio');
 
-      // Tạo thêm tiếng rít trầm tần số cao/thấp tăng độ giật mình ngay 0.00s
       if (audioCtx) {
         const now = audioCtx.currentTime;
         const screamOsc = audioCtx.createOscillator();
@@ -1955,7 +1946,6 @@
         const p = h3.play();
         if (p !== undefined) {
           p.catch(() => {
-            // Dự phòng nếu file kinh dị 2.mp3 chưa tải được thì nhấp nháy 3.5 giây rồi trả lại bài thi
             setTimeout(() => {
               resetHorrorScareState();
             }, 3500);
@@ -1968,7 +1958,6 @@
       }
     }
 
-    // Bắt đầu chuỗi màn hình tối đen + âm thanh 2 + nối tiếp âm thanh 3 kinh dị khi bấm thoát lần 2
     function startDarkScreenHorrorSequence() {
       if (horrorSequenceActive) return;
       horrorSequenceActive = true;
@@ -1989,7 +1978,6 @@
         e2.currentTime = 0;
         e2.volume = 1.0;
 
-        // Khi âm thanh thứ 2 chạy gần hết (còn 0.6 giây cuối) thì bật luôn âm thanh thứ 3
         e2.ontimeupdate = () => {
           if (
             !horrorTriggeredInCurrentSequence &&
@@ -2008,7 +1996,6 @@
         const playPromise = e2.play();
         if (playPromise !== undefined) {
           playPromise.catch(() => {
-            // Nếu file thoat2.mp3 không mở được, chờ 2.5s màn hình tối đen rồi bật luôn âm thanh kinh dị
             horrorFallbackTimer = setTimeout(() => {
               triggerHorrorJumpscare();
             }, 2500);
@@ -2112,7 +2099,6 @@
       }
     }
 
-    // Phát âm thanh xin donate duy nhất 1 lần lúc chọn mức chương
     function playDonateOnce() {
       if (hasPlayedDonateAudio) return false;
       hasPlayedDonateAudio = true;
@@ -2356,12 +2342,46 @@
     let currentFilter = 'all';
     let isExamMode = false;
     let practiceShuffled = false;
-    let currentPracticeLevel = 1;
     let examSubmitted = false;
+    let autoNextEnabled = true;
+    let autoNextTimer = null;
 
     const EXAM_DURATION_SECONDS = 60 * 60;
     let timeRemaining = EXAM_DURATION_SECONDS;
     let timerInterval = null;
+
+    function clearAutoNextTimer() {
+      if (autoNextTimer) {
+        clearTimeout(autoNextTimer);
+        autoNextTimer = null;
+      }
+    }
+
+    function toggleAutoNext() {
+      autoNextEnabled = !autoNextEnabled;
+      clearAutoNextTimer();
+      const btn = document.getElementById('btn-auto-next');
+      if (btn) {
+        btn.classList.toggle('active-mode', autoNextEnabled);
+        btn.textContent = autoNextEnabled ? '⏩ Tự chuyển câu: Bật' : '⏸️ Tự chuyển câu: Tắt';
+      }
+      playSound('nav');
+    }
+
+    function scheduleAutoNext(delayMs) {
+      clearAutoNextTimer();
+      if (!autoNextEnabled) return;
+      if (currentIndex >= activeQuestions.length - 1) return;
+
+      const targetIndex = currentIndex + 1;
+      autoNextTimer = setTimeout(() => {
+        autoNextTimer = null;
+        if (targetIndex < activeQuestions.length) {
+          currentIndex = targetIndex;
+          renderQuestion();
+        }
+      }, delayMs);
+    }
 
     function getSecureRandomInt(max) {
       if (window.crypto && window.crypto.getRandomValues) {
@@ -2381,7 +2401,6 @@
       return copy;
     }
 
-    // Tráo vị trí A, B, C, D của từng câu (ép đảo khác thứ tự gốc) nhưng giữ nguyên nội dung đáp án đúng
     function shuffleQuestionChoices(item) {
       const opts = Array.isArray(item.options) ? item.options.slice() : [];
       if (opts.length <= 1) return { ...item, options: opts };
@@ -2431,13 +2450,11 @@
     }
 
     function goHome() {
-      // Nếu đang trong Phòng Thi Thử và chưa nộp bài -> Chặn thoát & hù kinh dị
       if (isExamMode && !examSubmitted) {
         if (horrorSequenceActive) return;
         examExitAttemptCount++;
 
         if (examExitAttemptCount === 1) {
-          // Lần 1 bấm Về Trang Chủ: phát âm thanh 1 ("Mày không thoát được đâu con trai...") & chặn thoát
           stopAllVoiceClips();
           unlockAudio();
           const e1 = document.getElementById('exam-exit1-audio');
@@ -2456,12 +2473,12 @@
           }
           return;
         } else {
-          // Lần 2 cố tình bấm thêm lần nữa: màn hình tối đen + âm thanh 2 -> gần hết bật âm thanh 3 kinh dị loa cực to + màn hình nhấp nháy kinh dị liên tục
           startDarkScreenHorrorSequence();
           return;
         }
       }
 
+      clearAutoNextTimer();
       stopExamTimer();
       resetHorrorScareState();
       examExitAttemptCount = 0;
@@ -2491,6 +2508,7 @@
         return;
       }
 
+      clearAutoNextTimer();
       stopExamTimer();
       resetHorrorScareState();
       examExitAttemptCount = 0;
@@ -2500,7 +2518,6 @@
       currentPracticeLevel = level;
       consecutiveWrongCount = 0;
 
-      // Mặc định giữ nguyên thứ tự câu hỏi và thứ tự đáp án gốc
       originalSessionQuestions = JSON.parse(JSON.stringify(bank));
       activeQuestions = JSON.parse(JSON.stringify(bank));
       userAnswers = new Array(activeQuestions.length).fill(null);
@@ -2528,7 +2545,6 @@
       document.getElementById('pill-wrong').style.display = 'block';
       document.getElementById('pill-progress').style.display = 'block';
 
-      // Chỉ phát âm thanh xin donate 1 lần duy nhất ở lần chọn mức chương đầu tiên
       const playedDonate = playDonateOnce();
       if (!playedDonate) {
         playSound('nav');
@@ -2576,10 +2592,10 @@
       ];
       const extra5 = shuffleArray(remainingPool).slice(0, 5);
 
-      // Phần thi: luôn tráo thứ tự 50 câu VÀ tráo 4 đáp án A/B/C/D của từng câu
       const raw50 = shuffleArray([...picked1, ...picked2, ...picked3, ...extra5])
         .map(item => shuffleQuestionChoices(item));
 
+      clearAutoNextTimer();
       resetHorrorScareState();
       examExitAttemptCount = 0;
       isExamMode = true;
@@ -2706,7 +2722,6 @@
           <span>${optText}</span>
         `;
 
-        // Chống tích nhầm khi chạm vuốt cuộn trang trên điện thoại
         let touchStartX = 0;
         let touchStartY = 0;
         let isTouchMoved = false;
@@ -2773,16 +2788,20 @@
           }
         }
         renderQuestion();
+        // Chế độ ôn tập: dừng 850ms để kịp xem đáp án đúng/sai rồi tự nhảy sang câu tiếp theo
+        scheduleAutoNext(850);
       } else {
         if (examSubmitted) return;
-        if (userAnswers[currentIndex] === optIndex) return;
         userAnswers[currentIndex] = optIndex;
         playSound('select');
         renderQuestion();
+        // Chế độ thi thử: nhảy sang câu tiếp theo sau 250ms
+        scheduleAutoNext(250);
       }
     }
 
     function prevQuestion() {
+      clearAutoNextTimer();
       if (currentIndex > 0) {
         currentIndex--;
         playSound('nav');
@@ -2791,6 +2810,7 @@
     }
 
     function nextQuestion() {
+      clearAutoNextTimer();
       if (currentIndex < activeQuestions.length - 1) {
         currentIndex++;
         playSound('nav');
@@ -2799,6 +2819,7 @@
     }
 
     function jumpToQuestion(idx) {
+      clearAutoNextTimer();
       currentIndex = idx;
       playSound('nav');
       renderQuestion();
@@ -2883,7 +2904,6 @@
       });
     }
 
-    // Bật / Tắt chế độ tráo câu hỏi & đáp án trong Phần Ôn Tập
     function togglePracticeShuffle() {
       if (isExamMode) return;
       practiceShuffled = !practiceShuffled;
@@ -2904,6 +2924,7 @@
     }
 
     function resetCurrentSession() {
+      clearAutoNextTimer();
       if (isExamMode) {
         startExamMode();
         return;
@@ -2919,6 +2940,7 @@
     }
 
     function requestSubmitExam() {
+      clearAutoNextTimer();
       const unansweredCount = userAnswers.filter(a => a === null).length;
       if (unansweredCount > 0) {
         document.getElementById('confirm-submit-msg').textContent =
@@ -2934,6 +2956,7 @@
     }
 
     function finalizeExam(isAutoTimeout) {
+      clearAutoNextTimer();
       cancelSubmitExam();
       stopExamTimer();
       resetHorrorScareState();
