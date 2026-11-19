@@ -1056,8 +1056,10 @@
 <body>
   <!-- FILE ÂM THANH KHI CHỌN ĐÚNG Ở PHẦN ÔN TẬP (Đặt file dung.mp3 cùng thư mục với file HTML) -->
   <audio id="correct-voice-audio" src="dung.mp3" preload="auto"></audio>
-  <!-- FILE ÂM THANH KHI CHỌN SAI (Đặt file sai.mp3 cùng thư mục với file HTML) -->
+  <!-- FILE ÂM THANH KHI CHỌN SAI LẦN 1 (Đặt file sai.mp3 cùng thư mục với file HTML) -->
   <audio id="wrong-voice-audio" src="sai.mp3" preload="auto"></audio>
+  <!-- FILE ÂM THANH KHI CHỌN SAI 2 LẦN LIÊN TIẾP Ở PHẦN ÔN TẬP ("Cái gì vậy bà nội?" - Đặt file sai2.mp3 cùng thư mục với file HTML) -->
+  <audio id="wrong2-voice-audio" src="sai2.mp3" preload="auto"></audio>
   <!-- FILE ÂM THANH KHI CHỌN SAI 3 LẦN LIÊN TIẾP Ở PHẦN ÔN TẬP (Đặt file sai3.mp3 cùng thư mục với file HTML) -->
   <audio id="wrong3-voice-audio" src="sai3.mp3" preload="auto"></audio>
   <!-- FILE ÂM THANH KHI CHỌN ĐÚNG NGAY SAU KHI SAI 3 LẦN LIÊN TIẾP (Đặt file dung_sau_sai3.mp3 cùng thư mục với file HTML) -->
@@ -1131,7 +1133,7 @@
             <h2>📖 Chế Độ Ôn Tập Theo Chương (3 Mức)</h2>
             <ul class="feature-list">
               <li>✅ Chọn đáp án báo <strong>Đúng / Sai ngay lập tức</strong> với độ trễ âm thanh <strong>0 giây</strong>.</li>
-              <li>🔊 Chọn đúng có chuông vang đặc trưng; chọn sai phát <strong>cảnh báo cực to giật mình</strong>.</li>
+              <li>🔊 Chọn đúng phát hiệu ứng đặc trưng; chọn sai phát <strong>cảnh báo cực to giật mình</strong>.</li>
               <li>🔀 Mặc định giữ nguyên thứ tự gốc; có nút bật/tắt <strong>Tráo câu hỏi & đáp án</strong> theo ý muốn.</li>
             </ul>
           </div>
@@ -1548,6 +1550,7 @@
     let audioCtx = null;
     let correctVoiceConnected = false;
     let wrongVoiceConnected = false;
+    let wrong2VoiceConnected = false;
     let wrong3VoiceConnected = false;
     let correctAfterWrong3Connected = false;
     let donateVoiceConnected = false;
@@ -1566,12 +1569,13 @@
       }
       setupCorrectVoiceBooster();
       setupWrongVoiceBooster();
+      setupWrong2VoiceBooster();
       setupWrong3VoiceBooster();
       setupCorrectAfterWrong3Booster();
       setupDonateVoiceBooster();
     }
 
-    // Khuếch đại file dung.mp3 ("Mười điểm!") khi chọn đúng ở phần ôn tập
+    // Khuếch đại file dung.mp3 (hiệu ứng âm thanh mới khi chọn đúng ở phần ôn tập)
     function setupCorrectVoiceBooster() {
       if (correctVoiceConnected || !audioCtx) return;
       const audioEl = document.getElementById('correct-voice-audio');
@@ -1622,6 +1626,33 @@
         wrongVoiceConnected = true;
       } catch (e) {
         console.warn('Không thể nối bộ khuếch đại Web Audio cho sai.mp3:', e);
+      }
+    }
+
+    // Khuếch đại file sai2.mp3 ("Cái gì vậy bà nội?") khi sai 2 lần liên tiếp ở phần ôn tập
+    function setupWrong2VoiceBooster() {
+      if (wrong2VoiceConnected || !audioCtx) return;
+      const audioEl = document.getElementById('wrong2-voice-audio');
+      if (!audioEl) return;
+
+      try {
+        const source = audioCtx.createMediaElementSource(audioEl);
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.value = 3.5;
+
+        const compressor = audioCtx.createDynamicsCompressor();
+        compressor.threshold.setValueAtTime(-12, audioCtx.currentTime);
+        compressor.knee.setValueAtTime(10, audioCtx.currentTime);
+        compressor.ratio.setValueAtTime(12, audioCtx.currentTime);
+        compressor.attack.setValueAtTime(0.002, audioCtx.currentTime);
+        compressor.release.setValueAtTime(0.15, audioCtx.currentTime);
+
+        source.connect(gainNode);
+        gainNode.connect(compressor);
+        compressor.connect(audioCtx.destination);
+        wrong2VoiceConnected = true;
+      } catch (e) {
+        console.warn('Không thể nối bộ khuếch đại Web Audio cho sai2.mp3:', e);
       }
     }
 
@@ -1702,7 +1733,7 @@
     });
 
     function stopAllVoiceClips() {
-      ['correct-voice-audio', 'wrong-voice-audio', 'wrong3-voice-audio', 'correct-after-wrong3-audio'].forEach(id => {
+      ['correct-voice-audio', 'wrong-voice-audio', 'wrong2-voice-audio', 'wrong3-voice-audio', 'correct-after-wrong3-audio'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
           el.pause();
@@ -1714,16 +1745,21 @@
       }
     }
 
-    function speakFallbackCorrectPhrase() {
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const utter = new SpeechSynthesisUtterance("Mười điểm!");
-        utter.lang = 'vi-VN';
-        utter.volume = 1.0;
-        utter.rate = 1.15;
-        utter.pitch = 1.15;
-        window.speechSynthesis.speak(utter);
-      }
+    function playSynthCorrectBell(now) {
+      const notes = [523.25, 659.25, 783.99, 1046.5];
+      notes.forEach((freq, i) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + i * 0.055);
+        gain.gain.setValueAtTime(0.001, now + i * 0.055);
+        gain.gain.linearRampToValueAtTime(0.14, now + i * 0.055 + 0.006);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.055 + 0.28);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now + i * 0.055);
+        osc.stop(now + i * 0.055 + 0.29);
+      });
     }
 
     function speakFallbackWrongPhrase() {
@@ -1734,6 +1770,18 @@
         utter.volume = 1.0;
         utter.rate = 1.1;
         utter.pitch = 1.05;
+        window.speechSynthesis.speak(utter);
+      }
+    }
+
+    function speakFallbackWrong2Phrase() {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance("Cái gì vậy bà nội?");
+        utter.lang = 'vi-VN';
+        utter.volume = 1.0;
+        utter.rate = 1.1;
+        utter.pitch = 1.1;
         window.speechSynthesis.speak(utter);
       }
     }
@@ -1811,22 +1859,7 @@
 
       if (type === 'correct') {
         stopAllVoiceClips();
-        const notes = [523.25, 659.25, 783.99, 1046.5];
-        notes.forEach((freq, i) => {
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(freq, now + i * 0.055);
-          gain.gain.setValueAtTime(0.001, now + i * 0.055);
-          gain.gain.linearRampToValueAtTime(0.14, now + i * 0.055 + 0.006);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.055 + 0.28);
-          osc.connect(gain);
-          gain.connect(audioCtx.destination);
-          osc.start(now + i * 0.055);
-          osc.stop(now + i * 0.055 + 0.29);
-        });
-
-        // Phát đoạn âm thanh "Mười điểm!" (dung.mp3) khi làm đúng ở phần ôn tập
+        // Phát trực tiếp file dung.mp3 (hiệu ứng âm thanh mới khi làm đúng ở phần ôn tập)
         const voiceEl = document.getElementById('correct-voice-audio');
         if (voiceEl) {
           voiceEl.pause();
@@ -1835,11 +1868,11 @@
           const playPromise = voiceEl.play();
           if (playPromise !== undefined) {
             playPromise.catch(() => {
-              speakFallbackCorrectPhrase();
+              playSynthCorrectBell(audioCtx.currentTime);
             });
           }
         } else {
-          speakFallbackCorrectPhrase();
+          playSynthCorrectBell(now);
         }
       } else if (type === 'correctAfterWrong3') {
         // Nhạc báo đúng nhẹ + giọng "Mấy cái này cơ bản..."
@@ -1890,7 +1923,7 @@
         shockOsc.start(now);
         shockOsc.stop(now + 0.16);
 
-        // 2. Phát ngay đoạn ghi âm "Sao mình ngu vậy" (sai.mp3) ở mức khuếch đại tối đa
+        // 2. Phát ngay đoạn ghi âm sai lần 1 (sai.mp3)
         const voiceEl = document.getElementById('wrong-voice-audio');
         if (voiceEl) {
           voiceEl.pause();
@@ -1904,6 +1937,38 @@
           }
         } else {
           speakFallbackWrongPhrase();
+        }
+      } else if (type === 'wrong2') {
+        stopAllVoiceClips();
+        // Cú giật tiếng cảnh báo khi sai 2 lần liên tiếp
+        const shockOsc = audioCtx.createOscillator();
+        const shockGain = audioCtx.createGain();
+        shockOsc.type = 'sawtooth';
+        shockOsc.frequency.setValueAtTime(210, now);
+        shockOsc.frequency.exponentialRampToValueAtTime(52, now + 0.15);
+
+        shockGain.gain.setValueAtTime(0.95, now);
+        shockGain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+
+        shockOsc.connect(shockGain);
+        shockGain.connect(audioCtx.destination);
+        shockOsc.start(now);
+        shockOsc.stop(now + 0.17);
+
+        // Phát đoạn âm thanh 1 ("Cái gì vậy bà nội?" - sai2.mp3)
+        const voice2El = document.getElementById('wrong2-voice-audio');
+        if (voice2El) {
+          voice2El.pause();
+          voice2El.currentTime = 0;
+          voice2El.volume = 1.0;
+          const playPromise = voice2El.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(() => {
+              speakFallbackWrong2Phrase();
+            });
+          }
+        } else {
+          speakFallbackWrong2Phrase();
         }
       } else if (type === 'wrong3') {
         stopAllVoiceClips();
@@ -2382,7 +2447,9 @@
           consecutiveWrongCount = 0;
         } else {
           consecutiveWrongCount++;
-          if (consecutiveWrongCount >= 3 && consecutiveWrongCount % 3 === 0) {
+          if (consecutiveWrongCount === 2) {
+            playSound('wrong2');
+          } else if (consecutiveWrongCount >= 3 && consecutiveWrongCount % 3 === 0) {
             playSound('wrong3');
           } else {
             playSound('wrong');
