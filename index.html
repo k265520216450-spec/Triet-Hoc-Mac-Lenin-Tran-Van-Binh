@@ -44,6 +44,69 @@
       margin: 0 auto;
     }
 
+    /* ==================== MÀN HÌNH TỐI ĐEN & NHẤP NHÁY KINH DỊ ==================== */
+    #horror-overlay {
+      position: fixed;
+      inset: 0;
+      background: #000000;
+      z-index: 99999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      user-select: none;
+      pointer-events: all;
+      overflow: hidden;
+    }
+
+    #horror-overlay.show {
+      display: flex;
+    }
+
+    #horror-overlay.strobe-active {
+      animation: horrorStrobe 0.085s infinite steps(1, end), horrorShake 0.06s infinite;
+    }
+
+    @keyframes horrorStrobe {
+      0%   { background-color: #000000; }
+      25%  { background-color: #990000; }
+      45%  { background-color: #000000; }
+      65%  { background-color: #ffffff; }
+      80%  { background-color: #450a0a; }
+      100% { background-color: #000000; }
+    }
+
+    @keyframes horrorShake {
+      0%   { transform: translate(0, 0) scale(1); }
+      25%  { transform: translate(-8px, 6px) scale(1.02); }
+      50%  { transform: translate(8px, -6px) scale(0.99); }
+      75%  { transform: translate(-6px, -8px) scale(1.03); }
+      100% { transform: translate(6px, 8px) scale(1); }
+    }
+
+    .horror-scare-text {
+      display: none;
+      font-size: clamp(2.2rem, 7vw, 5.2rem);
+      font-weight: 900;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #ff0000;
+      text-shadow: 0 0 25px #ff0000, 0 0 60px #000000;
+      text-align: center;
+      padding: 20px;
+    }
+
+    #horror-overlay.strobe-active .horror-scare-text {
+      display: block;
+      animation: textGlitch 0.1s infinite;
+    }
+
+    @keyframes textGlitch {
+      0%   { color: #ff0000; transform: skewX(-6deg); }
+      50%  { color: #000000; transform: skewX(6deg); }
+      100% { color: #ffffff; transform: skewX(0deg); }
+    }
+
     /* HEADER CHUNG */
     header {
       background: var(--card-bg);
@@ -1054,6 +1117,11 @@
   </style>
 </head>
 <body>
+  <!-- MÀN HÌNH ĐEN & NHẤP NHÁY KINH DỊ KHI CỐ THOÁT KHỎI PHẦN THI -->
+  <div id="horror-overlay">
+    <div class="horror-scare-text">KHÔNG THỂ THOÁT!</div>
+  </div>
+
   <!-- FILE ÂM THANH KHI CHỌN ĐÚNG Ở PHẦN ÔN TẬP (Đặt file dung.mp3 cùng thư mục với file HTML) -->
   <audio id="correct-voice-audio" src="dung.mp3" preload="auto"></audio>
   <!-- FILE ÂM THANH KHI CHỌN SAI LẦN 1 (Đặt file sai.mp3 cùng thư mục với file HTML) -->
@@ -1066,6 +1134,11 @@
   <audio id="correct-after-wrong3-audio" src="dung_sau_sai3.mp3" preload="auto"></audio>
   <!-- FILE ÂM THANH DONATE PHÁT 1 LẦN KHI CHỌN MỨC CHƯƠNG (Đặt file donate.mp3 cùng thư mục với file HTML) -->
   <audio id="donate-voice-audio" src="donate.mp3" preload="auto"></audio>
+
+  <!-- 3 FILE ÂM THANH CHẶN THOÁT & HÙ KINH DỊ TRONG PHẦN THI (Đặt cùng thư mục với file HTML) -->
+  <audio id="exam-exit1-audio" src="thoat1.mp3" preload="auto"></audio>
+  <audio id="exam-exit2-audio" src="thoat2.mp3" preload="auto"></audio>
+  <audio id="exam-horror-audio" src="kinh dị 2.mp3" preload="auto"></audio>
 
   <div class="container">
     <!-- HEADER CHUNG -->
@@ -1554,8 +1627,17 @@
     let wrong3VoiceConnected = false;
     let correctAfterWrong3Connected = false;
     let donateVoiceConnected = false;
+    let exit1VoiceConnected = false;
+    let exit2VoiceConnected = false;
+    let horrorVoiceConnected = false;
     let hasPlayedDonateAudio = false; // Chỉ phát âm thanh donate đúng 1 lần duy nhất
     let consecutiveWrongCount = 0;   // Đếm số câu chọn sai liên tiếp ở phần ôn tập
+
+    // Biến trạng thái chặn thoát & hù kinh dị trong phần thi
+    let examExitAttemptCount = 0;
+    let horrorSequenceActive = false;
+    let horrorTriggeredInCurrentSequence = false;
+    let horrorFallbackTimer = null;
 
     function unlockAudio() {
       if (!audioCtx) {
@@ -1573,6 +1655,7 @@
       setupWrong3VoiceBooster();
       setupCorrectAfterWrong3Booster();
       setupDonateVoiceBooster();
+      setupExamExitBoosters();
     }
 
     // Khuếch đại file dung.mp3 (hiệu ứng âm thanh mới khi chọn đúng ở phần ôn tập)
@@ -1728,12 +1811,71 @@
       }
     }
 
+    // Khuếch đại 3 file âm thanh chặn thoát & hù kinh dị trong phần thi
+    function setupExamExitBoosters() {
+      if (!audioCtx) return;
+
+      const e1 = document.getElementById('exam-exit1-audio');
+      if (e1 && !exit1VoiceConnected) {
+        try {
+          const src = audioCtx.createMediaElementSource(e1);
+          const gain = audioCtx.createGain();
+          gain.gain.value = 3.2;
+          src.connect(gain);
+          gain.connect(audioCtx.destination);
+          exit1VoiceConnected = true;
+        } catch (err) {}
+      }
+
+      const e2 = document.getElementById('exam-exit2-audio');
+      if (e2 && !exit2VoiceConnected) {
+        try {
+          const src = audioCtx.createMediaElementSource(e2);
+          const gain = audioCtx.createGain();
+          gain.gain.value = 3.5;
+          src.connect(gain);
+          gain.connect(audioCtx.destination);
+          exit2VoiceConnected = true;
+        } catch (err) {}
+      }
+
+      const h3 = document.getElementById('exam-horror-audio');
+      if (h3 && !horrorVoiceConnected) {
+        try {
+          const src = audioCtx.createMediaElementSource(h3);
+          const gain = audioCtx.createGain();
+          gain.gain.value = 5.5; // Khuếch đại loa cực to để hù người thoát
+
+          const compressor = audioCtx.createDynamicsCompressor();
+          compressor.threshold.setValueAtTime(-16, audioCtx.currentTime);
+          compressor.knee.setValueAtTime(8, audioCtx.currentTime);
+          compressor.ratio.setValueAtTime(16, audioCtx.currentTime);
+          compressor.attack.setValueAtTime(0.001, audioCtx.currentTime);
+          compressor.release.setValueAtTime(0.12, audioCtx.currentTime);
+
+          src.connect(gain);
+          gain.connect(compressor);
+          compressor.connect(audioCtx.destination);
+          horrorVoiceConnected = true;
+        } catch (err) {}
+      }
+    }
+
     ['pointerdown', 'touchstart', 'keydown'].forEach(evt => {
       document.addEventListener(evt, unlockAudio, { passive: true });
     });
 
     function stopAllVoiceClips() {
-      ['correct-voice-audio', 'wrong-voice-audio', 'wrong2-voice-audio', 'wrong3-voice-audio', 'correct-after-wrong3-audio'].forEach(id => {
+      [
+        'correct-voice-audio',
+        'wrong-voice-audio',
+        'wrong2-voice-audio',
+        'wrong3-voice-audio',
+        'correct-after-wrong3-audio',
+        'exam-exit1-audio',
+        'exam-exit2-audio',
+        'exam-horror-audio'
+      ].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
           el.pause();
@@ -1742,6 +1884,140 @@
       });
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
+      }
+    }
+
+    function resetHorrorScareState() {
+      horrorSequenceActive = false;
+      horrorTriggeredInCurrentSequence = false;
+      if (horrorFallbackTimer) {
+        clearTimeout(horrorFallbackTimer);
+        horrorFallbackTimer = null;
+      }
+      const overlay = document.getElementById('horror-overlay');
+      if (overlay) {
+        overlay.classList.remove('show', 'strobe-active');
+      }
+      const e2 = document.getElementById('exam-exit2-audio');
+      if (e2) {
+        e2.ontimeupdate = null;
+        e2.onended = null;
+      }
+      const h3 = document.getElementById('exam-horror-audio');
+      if (h3) {
+        h3.onended = null;
+      }
+    }
+
+    // Kích hoạt âm thanh thứ 3 (kinh dị 2.mp3) loa cực to + màn hình nhấp nháy kinh dị liên tục
+    function triggerHorrorJumpscare() {
+      if (horrorTriggeredInCurrentSequence) return;
+      horrorTriggeredInCurrentSequence = true;
+
+      if (horrorFallbackTimer) {
+        clearTimeout(horrorFallbackTimer);
+        horrorFallbackTimer = null;
+      }
+
+      const overlay = document.getElementById('horror-overlay');
+      if (overlay) {
+        overlay.classList.add('show', 'strobe-active');
+      }
+
+      unlockAudio();
+      const h3 = document.getElementById('exam-horror-audio');
+
+      // Tạo thêm tiếng rít trầm tần số cao/thấp tăng độ giật mình ngay 0.00s
+      if (audioCtx) {
+        const now = audioCtx.currentTime;
+        const screamOsc = audioCtx.createOscillator();
+        const screamGain = audioCtx.createGain();
+        screamOsc.type = 'sawtooth';
+        screamOsc.frequency.setValueAtTime(920, now);
+        screamOsc.frequency.exponentialRampToValueAtTime(110, now + 0.45);
+        screamGain.gain.setValueAtTime(1.0, now);
+        screamGain.gain.exponentialRampToValueAtTime(0.001, now + 0.48);
+        screamOsc.connect(screamGain);
+        screamGain.connect(audioCtx.destination);
+        screamOsc.start(now);
+        screamOsc.stop(now + 0.5);
+      }
+
+      if (h3) {
+        h3.pause();
+        h3.currentTime = 0;
+        h3.volume = 1.0;
+
+        h3.onended = () => {
+          resetHorrorScareState();
+        };
+
+        const p = h3.play();
+        if (p !== undefined) {
+          p.catch(() => {
+            // Dự phòng nếu file kinh dị 2.mp3 chưa tải được thì nhấp nháy 3.5 giây rồi trả lại bài thi
+            setTimeout(() => {
+              resetHorrorScareState();
+            }, 3500);
+          });
+        }
+      } else {
+        setTimeout(() => {
+          resetHorrorScareState();
+        }, 3500);
+      }
+    }
+
+    // Bắt đầu chuỗi màn hình tối đen + âm thanh 2 + nối tiếp âm thanh 3 kinh dị khi bấm thoát lần 2
+    function startDarkScreenHorrorSequence() {
+      if (horrorSequenceActive) return;
+      horrorSequenceActive = true;
+      horrorTriggeredInCurrentSequence = false;
+
+      stopAllVoiceClips();
+      unlockAudio();
+
+      const overlay = document.getElementById('horror-overlay');
+      if (overlay) {
+        overlay.classList.remove('strobe-active');
+        overlay.classList.add('show');
+      }
+
+      const e2 = document.getElementById('exam-exit2-audio');
+      if (e2) {
+        e2.pause();
+        e2.currentTime = 0;
+        e2.volume = 1.0;
+
+        // Khi âm thanh thứ 2 chạy gần hết (còn 0.6 giây cuối) thì bật luôn âm thanh thứ 3
+        e2.ontimeupdate = () => {
+          if (
+            !horrorTriggeredInCurrentSequence &&
+            isFinite(e2.duration) &&
+            e2.duration > 0 &&
+            e2.duration - e2.currentTime <= 0.6
+          ) {
+            triggerHorrorJumpscare();
+          }
+        };
+
+        e2.onended = () => {
+          triggerHorrorJumpscare();
+        };
+
+        const playPromise = e2.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {
+            // Nếu file thoat2.mp3 không mở được, chờ 2.5s màn hình tối đen rồi bật luôn âm thanh kinh dị
+            horrorFallbackTimer = setTimeout(() => {
+              triggerHorrorJumpscare();
+            }, 2500);
+          });
+        }
+      } else {
+        horrorFallbackTimer = setTimeout(() => {
+          triggerHorrorJumpscare();
+        }, 2500);
       }
     }
 
@@ -1825,6 +2101,17 @@
       }
     }
 
+    function speakFallbackExit1Phrase() {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance("Mày không thoát được đâu con trai!");
+        utter.lang = 'vi-VN';
+        utter.volume = 1.0;
+        utter.rate = 1.05;
+        window.speechSynthesis.speak(utter);
+      }
+    }
+
     // Phát âm thanh xin donate duy nhất 1 lần lúc chọn mức chương
     function playDonateOnce() {
       if (hasPlayedDonateAudio) return false;
@@ -1859,7 +2146,6 @@
 
       if (type === 'correct') {
         stopAllVoiceClips();
-        // Phát trực tiếp file dung.mp3 (hiệu ứng âm thanh mới khi làm đúng ở phần ôn tập)
         const voiceEl = document.getElementById('correct-voice-audio');
         if (voiceEl) {
           voiceEl.pause();
@@ -1875,7 +2161,6 @@
           playSynthCorrectBell(now);
         }
       } else if (type === 'correctAfterWrong3') {
-        // Nhạc báo đúng nhẹ + giọng "Mấy cái này cơ bản..."
         stopAllVoiceClips();
         const notes = [523.25, 659.25, 783.99];
         notes.forEach((freq, i) => {
@@ -1908,7 +2193,6 @@
         }
       } else if (type === 'wrong') {
         stopAllVoiceClips();
-        // 1. Cú giật tiếng (shock transient) cực mạnh ngay 0.00 giây
         const shockOsc = audioCtx.createOscillator();
         const shockGain = audioCtx.createGain();
         shockOsc.type = 'sawtooth';
@@ -1923,7 +2207,6 @@
         shockOsc.start(now);
         shockOsc.stop(now + 0.16);
 
-        // 2. Phát ngay đoạn ghi âm sai lần 1 (sai.mp3)
         const voiceEl = document.getElementById('wrong-voice-audio');
         if (voiceEl) {
           voiceEl.pause();
@@ -1940,7 +2223,6 @@
         }
       } else if (type === 'wrong2') {
         stopAllVoiceClips();
-        // Cú giật tiếng cảnh báo khi sai 2 lần liên tiếp
         const shockOsc = audioCtx.createOscillator();
         const shockGain = audioCtx.createGain();
         shockOsc.type = 'sawtooth';
@@ -1955,7 +2237,6 @@
         shockOsc.start(now);
         shockOsc.stop(now + 0.17);
 
-        // Phát đoạn âm thanh 1 ("Cái gì vậy bà nội?" - sai2.mp3)
         const voice2El = document.getElementById('wrong2-voice-audio');
         if (voice2El) {
           voice2El.pause();
@@ -1972,7 +2253,6 @@
         }
       } else if (type === 'wrong3') {
         stopAllVoiceClips();
-        // Cú giật tiếng cảnh báo khi sai 3 lần liên tiếp
         const shockOsc = audioCtx.createOscillator();
         const shockGain = audioCtx.createGain();
         shockOsc.type = 'sawtooth';
@@ -1987,7 +2267,6 @@
         shockOsc.start(now);
         shockOsc.stop(now + 0.18);
 
-        // Phát đoạn ghi âm sai 3 lần liên tiếp (sai3.mp3)
         const voice3El = document.getElementById('wrong3-voice-audio');
         if (voice3El) {
           voice3El.pause();
@@ -2063,6 +2342,7 @@
       btn.textContent = soundEnabled ? '🔊 Âm thanh: Bật' : '🔇 Âm thanh: Tắt';
       if (!soundEnabled) {
         stopAllVoiceClips();
+        resetHorrorScareState();
       } else {
         playSound('nav');
       }
@@ -2151,7 +2431,40 @@
     }
 
     function goHome() {
+      // Nếu đang trong Phòng Thi Thử và chưa nộp bài -> Chặn thoát & hù kinh dị
+      if (isExamMode && !examSubmitted) {
+        if (horrorSequenceActive) return;
+        examExitAttemptCount++;
+
+        if (examExitAttemptCount === 1) {
+          // Lần 1 bấm Về Trang Chủ: phát âm thanh 1 ("Mày không thoát được đâu con trai...") & chặn thoát
+          stopAllVoiceClips();
+          unlockAudio();
+          const e1 = document.getElementById('exam-exit1-audio');
+          if (e1) {
+            e1.pause();
+            e1.currentTime = 0;
+            e1.volume = 1.0;
+            const p = e1.play();
+            if (p !== undefined) {
+              p.catch(() => {
+                speakFallbackExit1Phrase();
+              });
+            }
+          } else {
+            speakFallbackExit1Phrase();
+          }
+          return;
+        } else {
+          // Lần 2 cố tình bấm thêm lần nữa: màn hình tối đen + âm thanh 2 -> gần hết bật âm thanh 3 kinh dị loa cực to + màn hình nhấp nháy kinh dị liên tục
+          startDarkScreenHorrorSequence();
+          return;
+        }
+      }
+
       stopExamTimer();
+      resetHorrorScareState();
+      examExitAttemptCount = 0;
       playSound('nav');
       document.getElementById('home-view').style.display = 'block';
       document.getElementById('workspace-view').style.display = 'none';
@@ -2179,6 +2492,8 @@
       }
 
       stopExamTimer();
+      resetHorrorScareState();
+      examExitAttemptCount = 0;
       isExamMode = false;
       practiceShuffled = false;
       examSubmitted = false;
@@ -2265,6 +2580,8 @@
       const raw50 = shuffleArray([...picked1, ...picked2, ...picked3, ...extra5])
         .map(item => shuffleQuestionChoices(item));
 
+      resetHorrorScareState();
+      examExitAttemptCount = 0;
       isExamMode = true;
       practiceShuffled = false;
       examSubmitted = false;
@@ -2619,6 +2936,7 @@
     function finalizeExam(isAutoTimeout) {
       cancelSubmitExam();
       stopExamTimer();
+      resetHorrorScareState();
       examSubmitted = true;
 
       if (!isAutoTimeout) {
