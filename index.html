@@ -1054,6 +1054,8 @@
   </style>
 </head>
 <body>
+  <!-- FILE ÂM THANH KHI CHỌN ĐÚNG Ở PHẦN ÔN TẬP (Đặt file dung.mp3 cùng thư mục với file HTML) -->
+  <audio id="correct-voice-audio" src="dung.mp3" preload="auto"></audio>
   <!-- FILE ÂM THANH KHI CHỌN SAI (Đặt file sai.mp3 cùng thư mục với file HTML) -->
   <audio id="wrong-voice-audio" src="sai.mp3" preload="auto"></audio>
   <!-- FILE ÂM THANH KHI CHỌN SAI 3 LẦN LIÊN TIẾP Ở PHẦN ÔN TẬP (Đặt file sai3.mp3 cùng thư mục với file HTML) -->
@@ -1544,6 +1546,7 @@
     // ==================== HỆ THỐNG ÂM THANH ĐỘ TRỄ 0 GIÂY & KHUẾCH ĐẠI CỰC TO ====================
     let soundEnabled = true;
     let audioCtx = null;
+    let correctVoiceConnected = false;
     let wrongVoiceConnected = false;
     let wrong3VoiceConnected = false;
     let correctAfterWrong3Connected = false;
@@ -1561,10 +1564,38 @@
       if (audioCtx && audioCtx.state === 'suspended') {
         audioCtx.resume();
       }
+      setupCorrectVoiceBooster();
       setupWrongVoiceBooster();
       setupWrong3VoiceBooster();
       setupCorrectAfterWrong3Booster();
       setupDonateVoiceBooster();
+    }
+
+    // Khuếch đại file dung.mp3 ("Mười điểm!") khi chọn đúng ở phần ôn tập
+    function setupCorrectVoiceBooster() {
+      if (correctVoiceConnected || !audioCtx) return;
+      const audioEl = document.getElementById('correct-voice-audio');
+      if (!audioEl) return;
+
+      try {
+        const source = audioCtx.createMediaElementSource(audioEl);
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.value = 2.6;
+
+        const compressor = audioCtx.createDynamicsCompressor();
+        compressor.threshold.setValueAtTime(-12, audioCtx.currentTime);
+        compressor.knee.setValueAtTime(10, audioCtx.currentTime);
+        compressor.ratio.setValueAtTime(12, audioCtx.currentTime);
+        compressor.attack.setValueAtTime(0.002, audioCtx.currentTime);
+        compressor.release.setValueAtTime(0.15, audioCtx.currentTime);
+
+        source.connect(gainNode);
+        gainNode.connect(compressor);
+        compressor.connect(audioCtx.destination);
+        correctVoiceConnected = true;
+      } catch (e) {
+        console.warn('Không thể nối bộ khuếch đại Web Audio cho dung.mp3:', e);
+      }
     }
 
     // Khuếch đại file sai.mp3 lên 400% qua Web Audio API để phát cực to
@@ -1671,7 +1702,7 @@
     });
 
     function stopAllVoiceClips() {
-      ['wrong-voice-audio', 'wrong3-voice-audio', 'correct-after-wrong3-audio'].forEach(id => {
+      ['correct-voice-audio', 'wrong-voice-audio', 'wrong3-voice-audio', 'correct-after-wrong3-audio'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
           el.pause();
@@ -1680,6 +1711,18 @@
       });
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
+      }
+    }
+
+    function speakFallbackCorrectPhrase() {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance("Mười điểm!");
+        utter.lang = 'vi-VN';
+        utter.volume = 1.0;
+        utter.rate = 1.15;
+        utter.pitch = 1.15;
+        window.speechSynthesis.speak(utter);
       }
     }
 
@@ -1767,6 +1810,7 @@
       const now = audioCtx.currentTime;
 
       if (type === 'correct') {
+        stopAllVoiceClips();
         const notes = [523.25, 659.25, 783.99, 1046.5];
         notes.forEach((freq, i) => {
           const osc = audioCtx.createOscillator();
@@ -1774,13 +1818,29 @@
           osc.type = 'sine';
           osc.frequency.setValueAtTime(freq, now + i * 0.055);
           gain.gain.setValueAtTime(0.001, now + i * 0.055);
-          gain.gain.linearRampToValueAtTime(0.16, now + i * 0.055 + 0.006);
+          gain.gain.linearRampToValueAtTime(0.14, now + i * 0.055 + 0.006);
           gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.055 + 0.28);
           osc.connect(gain);
           gain.connect(audioCtx.destination);
           osc.start(now + i * 0.055);
           osc.stop(now + i * 0.055 + 0.29);
         });
+
+        // Phát đoạn âm thanh "Mười điểm!" (dung.mp3) khi làm đúng ở phần ôn tập
+        const voiceEl = document.getElementById('correct-voice-audio');
+        if (voiceEl) {
+          voiceEl.pause();
+          voiceEl.currentTime = 0;
+          voiceEl.volume = 1.0;
+          const playPromise = voiceEl.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(() => {
+              speakFallbackCorrectPhrase();
+            });
+          }
+        } else {
+          speakFallbackCorrectPhrase();
+        }
       } else if (type === 'correctAfterWrong3') {
         // Nhạc báo đúng nhẹ + giọng "Mấy cái này cơ bản..."
         stopAllVoiceClips();
