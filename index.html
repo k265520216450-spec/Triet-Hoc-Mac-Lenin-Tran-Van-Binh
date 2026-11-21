@@ -1206,7 +1206,7 @@
             <h2>📖 Chế Độ Ôn Tập Theo Chương (3 Mức)</h2>
             <ul class="feature-list">
               <li>✅ Chọn đáp án báo <strong>Đúng / Sai ngay lập tức</strong> với độ trễ âm thanh <strong>0 giây</strong>.</li>
-              <li>🔊 Chọn đúng phát hiệu ứng đặc trưng; chọn sai phát <strong>cảnh báo cực to giật mình</strong>.</li>
+              <li>⏩ Chọn đúng tự chuyển câu sau <strong>1 giây</strong>; chọn sai tự chuyển câu sau <strong>5 giây</strong>.</li>
               <li>🔀 Mặc định giữ nguyên thứ tự gốc; có nút bật/tắt <strong>Tráo câu hỏi & đáp án</strong> theo ý muốn.</li>
             </ul>
           </div>
@@ -2770,7 +2770,9 @@
       if (!isExamMode) {
         if (userAnswers[currentIndex] !== null) return;
         userAnswers[currentIndex] = optIndex;
-        if (optIndex === activeQuestions[currentIndex].ans) {
+        const isCorrect = optIndex === activeQuestions[currentIndex].ans;
+
+        if (isCorrect) {
           if (consecutiveWrongCount >= 3) {
             playSound('correctAfterWrong3');
           } else {
@@ -2788,8 +2790,8 @@
           }
         }
         renderQuestion();
-        // Chế độ ôn tập: dừng 850ms để kịp xem đáp án đúng/sai rồi tự nhảy sang câu tiếp theo
-        scheduleAutoNext(850);
+        // Chọn đúng -> 1 giây (1000ms) sau chuyển câu; chọn sai -> 5 giây (5000ms) sau mới chuyển câu
+        scheduleAutoNext(isCorrect ? 1000 : 5000);
       } else {
         if (examSubmitted) return;
         userAnswers[currentIndex] = optIndex;
