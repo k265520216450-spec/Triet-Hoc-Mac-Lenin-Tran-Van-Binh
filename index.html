@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" class="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -284,6 +284,18 @@
       box-shadow: 0 0 15px rgba(56, 189, 248, 0.25);
     }
 
+    .tool-btn.hint-accent {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(14, 165, 233, 0.22));
+      border-color: rgba(129, 140, 248, 0.55);
+      color: #c7d2fe;
+    }
+
+    .tool-btn.hint-accent:hover {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.42), rgba(14, 165, 233, 0.35));
+      border-color: #38bdf8;
+      color: #ffffff;
+    }
+
     /* ==================== TRANG CHỦ (HOME VIEW) ==================== */
     #home-view {
       display: block;
@@ -326,6 +338,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 8px;
     }
 
     .bank-badge-item .ch-name {
@@ -336,12 +349,13 @@
 
     .bank-badge-item .ch-count {
       font-weight: 800;
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       padding: 3px 10px;
       border-radius: 999px;
       background: rgba(245, 158, 11, 0.16);
       color: #fbbf24;
       border: 1px solid rgba(245, 158, 11, 0.35);
+      white-space: nowrap;
     }
 
     .bank-badge-item .ch-count.ready {
@@ -720,6 +734,16 @@
       border-color: var(--wrong-border);
     }
 
+    /* KHUNG GỢI Ý TƯ DUY INLINE */
+    #inline-hint-box {
+      margin-top: 16px;
+      display: none;
+    }
+
+    #inline-hint-box.show {
+      display: block;
+    }
+
     .nav-controls {
       display: flex;
       justify-content: space-between;
@@ -762,6 +786,24 @@
 
     .btn-primary:hover:not(:disabled) {
       filter: brightness(1.1);
+    }
+
+    .btn-hint {
+      background: rgba(79, 70, 229, 0.24);
+      border: 1px solid rgba(129, 140, 248, 0.55);
+      color: #c7d2fe;
+    }
+
+    .btn-hint:hover:not(:disabled) {
+      background: rgba(79, 70, 229, 0.42);
+      border-color: #38bdf8;
+      color: #ffffff;
+    }
+
+    .btn-hint.active {
+      background: linear-gradient(135deg, #4f46e5, #0284c7);
+      border-color: #38bdf8;
+      color: #ffffff;
     }
 
     .btn-submit-exam {
@@ -1013,6 +1055,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
       gap: 10px;
       margin-bottom: 8px;
     }
@@ -1053,6 +1096,15 @@
       cursor: pointer;
       font-weight: 600;
       flex-shrink: 0;
+    }
+
+    /* THANH CHỌN CHƯƠNG TRONG MODAL TRA CỨU GỢI Ý */
+    .rh-chapter-switcher {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.2);
     }
 
     /* MODAL NẠP DỮ LIỆU CÂU HỎI & THÔNG BÁO */
@@ -1163,6 +1215,7 @@
         <div class="stat-pill" id="pill-correct" style="display: none;">Đúng: <span class="correct" id="stat-correct">0</span></div>
         <div class="stat-pill" id="pill-wrong" style="display: none;">Sai: <span class="wrong" id="stat-wrong">0</span></div>
         <div class="stat-pill" id="pill-progress" style="display: none;">Tiến độ: <span class="total" id="stat-progress">0/0</span></div>
+        <button class="tool-btn hint-accent" id="btn-open-hint-modal" onclick="openHintModalForCurrent()">📖 Kho Gợi Ý & Trùm Cuối</button>
         <button class="tool-btn" id="btn-sound" onclick="toggleSound()">🔊 Âm thanh: Bật</button>
       </div>
     </header>
@@ -1173,9 +1226,12 @@
       <section class="bank-status-card">
         <div class="bank-status-top">
           <h2>📦 Trạng thái dữ liệu ngân hàng câu hỏi (Tổng mục tiêu: 600 câu)</h2>
-          <div style="display: none; gap: 8px; flex-wrap: wrap;">
-            <button class="tool-btn" onclick="openImportModal()">📥 Nạp / Dán Code Câu Hỏi</button>
-            <button class="tool-btn" onclick="clearImportedStorage()" title="Xóa dữ liệu đã dán trong trình duyệt">🗑️ Xóa bộ nhớ tạm</button>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+            <span id="hints-loaded-status" style="font-size: 0.84rem; color: #a5b4fc; font-weight: 600;">💡 Gợi ý: Đang kiểm tra...</span>
+            <div style="display: none; gap: 8px; flex-wrap: wrap;">
+              <button class="tool-btn" onclick="openImportModal()">📥 Nạp / Dán Code Câu Hỏi</button>
+              <button class="tool-btn" onclick="clearImportedStorage()" title="Xóa dữ liệu đã dán trong trình duyệt">🗑️ Xóa bộ nhớ tạm</button>
+            </div>
           </div>
         </div>
         <div class="bank-badges">
@@ -1206,6 +1262,7 @@
             <h2>📖 Chế Độ Ôn Tập Theo Chương (3 Mức)</h2>
             <ul class="feature-list">
               <li>✅ Chọn đáp án báo <strong>Đúng / Sai ngay lập tức</strong> với độ trễ âm thanh <strong>0 giây</strong>.</li>
+              <li>💡 Tích hợp nút <strong>Gợi ý tư duy & Ví dụ thực tế</strong> ngay dưới từng câu hỏi (tự dừng chuyển câu để đọc).</li>
               <li>⏩ Chọn đúng tự chuyển câu sau <strong>1 giây</strong>; chọn sai tự chuyển câu sau <strong>5 giây</strong>.</li>
               <li>🔀 Mặc định giữ nguyên thứ tự gốc; có nút bật/tắt <strong>Tráo câu hỏi & đáp án</strong> theo ý muốn.</li>
             </ul>
@@ -1255,7 +1312,7 @@
             <ul class="feature-list">
               <li>🎲 Bốc ngẫu nhiên từ 600 câu: <strong>tối thiểu 15 câu Chương 1 + 15 câu Chương 2 + 15 câu Chương 3 + 5 câu ngẫu nhiên tổng hợp</strong> (tự động tráo cả thứ tự câu lẫn đáp án).</li>
               <li>⏱️ Đồng hồ đếm ngược <strong>60 phút</strong>; hết giờ tự động hú còi báo động và thu bài.</li>
-              <li>📊 Nộp bài chấm điểm ngay (<strong>0.2đ/câu</strong>), thống kê số câu sai, chỉ rõ đáp án đúng.</li>
+              <li>📊 Nộp bài chấm điểm ngay (<strong>0.2đ/câu</strong>), thống kê số câu sai, chỉ rõ đáp án đúng kèm gợi ý giải thích.</li>
             </ul>
 
             <div class="exam-specs-box">
@@ -1351,9 +1408,15 @@
 
           <div class="options-list" id="options-list"></div>
 
+          <!-- KHUNG HIỂN THỊ GỢI Ý TƯ DUY & VÍ DỤ THỰC TẾ -->
+          <div id="inline-hint-box"></div>
+
           <div class="nav-controls">
             <button class="btn" id="btn-prev" onclick="prevQuestion()">← Câu trước</button>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+              <button class="btn btn-hint" id="btn-toggle-hint" onclick="toggleCurrentInlineHint()">
+                💡 Gợi ý câu này
+              </button>
               <button class="btn btn-submit-exam" id="btn-submit-main" style="display: none;" onclick="requestSubmitExam()">
                 ✅ Nộp bài thi
               </button>
@@ -1436,7 +1499,208 @@
   <script src="chuong2.js" onerror="void 0"></script>
   <script src="chuong3.js" onerror="void 0"></script>
 
+  <!-- KHU VỰC NẠP BỘ GỢI Ý ÔN TẬP 3 CHƯƠNG (hints_1.js, hints_2.js, hints_3.js) -->
+  <script src="hints_1.js" onerror="void 0"></script>
+  <script src="hints_2.js" onerror="void 0"></script>
+  <script src="hints_3.js" onerror="void 0"></script>
+
   <script>
+    // ==================== KẾT NỐI HỆ THỐNG GỢI Ý CHƯƠNG 1 - 2 - 3 ====================
+    let inlineHintVisible = false;
+
+    function getHintForQuestionItem(item) {
+      if (!item || !window.ReviewHints) return null;
+      const ch = Number(item.chapter) || 3;
+      return (
+        window.ReviewHints.get(ch, item.id) ||
+        window.ReviewHints.findByText(ch, item.q) ||
+        window.ReviewHints.findAuto(item.id, item.q)
+      );
+    }
+
+    function updateHintAvailabilityUI() {
+      const statusEl = document.getElementById('hints-loaded-status');
+      if (!statusEl) return;
+
+      if (!window.ReviewHints || !window.ReviewHints.chapters) {
+        statusEl.textContent = '💡 Gợi ý: Chưa nạp file hints_*.js';
+        statusEl.style.color = '#fbbf24';
+        return;
+      }
+
+      const loadedParts = [];
+      [1, 2, 3].forEach(ch => {
+        const data = window.ReviewHints.chapters[ch];
+        if (data && Array.isArray(data.questions) && data.questions.length > 0) {
+          loadedParts.push(`C${ch} (${data.questions.length} câu)`);
+        }
+      });
+
+      if (loadedParts.length > 0) {
+        statusEl.textContent = `💡 Gợi ý đã sẵn sàng: ${loadedParts.join(' · ')}`;
+        statusEl.style.color = '#34d399';
+      } else {
+        statusEl.textContent = '💡 Gợi ý: Chưa nạp dữ liệu chương nào';
+        statusEl.style.color = '#fbbf24';
+      }
+    }
+
+    function renderInlineHintBox(item) {
+      const box = document.getElementById('inline-hint-box');
+      const btn = document.getElementById('btn-toggle-hint');
+      if (!box || !btn) return;
+
+      const allowHint = !isExamMode || examSubmitted;
+      if (!allowHint || !item) {
+        box.classList.remove('show');
+        box.innerHTML = '';
+        btn.style.display = 'none';
+        return;
+      }
+
+      btn.style.display = 'inline-block';
+      btn.classList.toggle('active', inlineHintVisible);
+      btn.textContent = inlineHintVisible ? '🙈 Ẩn gợi ý' : '💡 Gợi ý câu này';
+
+      if (!inlineHintVisible) {
+        box.classList.remove('show');
+        box.innerHTML = '';
+        return;
+      }
+
+      const ch = Number(item.chapter) || 3;
+      const hintObj = getHintForQuestionItem(item);
+
+      if (hintObj && window.ReviewHints) {
+        box.innerHTML = window.ReviewHints.renderInlineHTML(hintObj, { showQuestionTitle: false });
+      } else {
+        box.innerHTML = `
+          <div class="rh-inline-card">
+            <p class="rh-box-text">
+              ⚠️ Chưa có dữ liệu gợi ý cho <strong>Chương ${ch} (Câu ${item.id})</strong>. Hãy kiểm tra file <code>hints_${ch}.js</code> đã được đặt cùng thư mục với <code>index.html</code> chưa nhé!
+            </p>
+          </div>
+        `;
+      }
+      box.classList.add('show');
+    }
+
+    function toggleCurrentInlineHint() {
+      if (isExamMode && !examSubmitted) return;
+      // Khi bấm xem gợi ý, tự dừng hẹn giờ chuyển câu để không bị nhảy trang giữa chừng
+      clearAutoNextTimer();
+      inlineHintVisible = !inlineHintVisible;
+      playSound('nav');
+      renderInlineHintBox(activeQuestions[currentIndex]);
+    }
+
+    function injectModalChapterSwitcher() {
+      if (!window.ReviewHints || !window.ReviewHints.chapters) return;
+      const body = document.querySelector('#rhBackdrop .rh-modal-body');
+      if (!body) return;
+
+      let bar = document.getElementById('rhChapterSwitcherBar');
+      if (!bar) {
+        bar = document.createElement('div');
+        bar.id = 'rhChapterSwitcherBar';
+        bar.className = 'rh-chapter-switcher';
+        body.insertBefore(bar, body.firstChild);
+      }
+
+      const activeCh = window.ReviewHints.state.chapter;
+      bar.innerHTML = [1, 2, 3].map(ch => {
+        const chObj = window.ReviewHints.chapters[ch];
+        const count = chObj && Array.isArray(chObj.questions) ? chObj.questions.length : 0;
+        const isCurrent = ch === activeCh;
+        const label = count > 0 ? `Chương ${ch} (${count} câu)` : `Chương ${ch} (Chưa nạp)`;
+        return `<button type="button" class="rh-pill ${isCurrent ? 'active' : ''}" data-rh-switch-ch="${ch}" ${count === 0 ? 'disabled style="opacity:0.45;cursor:not-allowed;"' : ''}>${label}</button>`;
+      }).join('');
+
+      bar.querySelectorAll('[data-rh-switch-ch]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const targetCh = parseInt(btn.dataset.rhSwitchCh, 10);
+          window.ReviewHints.state.chapter = targetCh;
+          window.ReviewHints.selectInModal(1, true);
+          injectModalChapterSwitcher();
+        });
+      });
+    }
+
+    function openHintModalForCurrent() {
+      if (isExamMode && !examSubmitted) {
+        playSound('wrong');
+        openNoticeModal(
+          "Đang trong giờ thi thử!",
+          "Kho gợi ý tạm khóa trong lúc làm bài thi 50 câu để đảm bảo tính khách quan. Sau khi nộp bài, bạn có thể mở lại thoải mái nhé!"
+        );
+        return;
+      }
+
+      if (!window.ReviewHints) {
+        openNoticeModal(
+          "Chưa nạp bộ gợi ý",
+          "Chưa tìm thấy file hints_1.js, hints_2.js hoặc hints_3.js cùng thư mục với index.html."
+        );
+        return;
+      }
+
+      playSound('nav');
+      const workspaceVisible = document.getElementById('workspace-view').style.display === 'block';
+      const currentItem = workspaceVisible ? activeQuestions[currentIndex] : null;
+
+      if (currentItem) {
+        const hintObj = getHintForQuestionItem(currentItem);
+        if (hintObj) {
+          window.ReviewHints.open(hintObj.chapter, hintObj.num);
+          injectModalChapterSwitcher();
+          return;
+        }
+      }
+
+      // Tìm chương đầu tiên đã có dữ liệu gợi ý (ưu tiên chương đang ôn tập nếu có)
+      const preferredOrder = currentItem
+        ? [Number(currentItem.chapter), 3, 2, 1]
+        : [3, 2, 1];
+      const availableCh = preferredOrder.find(
+        c => window.ReviewHints.chapters[c] && window.ReviewHints.chapters[c].questions.length > 0
+      );
+
+      if (!availableCh) {
+        openNoticeModal(
+          "Chưa có dữ liệu gợi ý",
+          "Chưa có chương nào được nạp dữ liệu gợi ý. Hãy đặt file hints_1.js, hints_2.js hoặc hints_3.js cùng thư mục với index.html!"
+        );
+        return;
+      }
+
+      window.ReviewHints.open(availableCh, 1);
+      injectModalChapterSwitcher();
+    }
+
+    function openHintModalForSpecific(chapterNum, questionId, questionText) {
+      if (!window.ReviewHints) return;
+      playSound('nav');
+      const ch = Number(chapterNum) || 3;
+      const hintObj =
+        window.ReviewHints.get(ch, questionId) ||
+        window.ReviewHints.findByText(ch, questionText) ||
+        window.ReviewHints.findAuto(questionId, questionText);
+
+      if (hintObj) {
+        window.ReviewHints.open(hintObj.chapter, hintObj.num);
+        injectModalChapterSwitcher();
+      } else {
+        openNoticeModal(
+          `Chưa có gợi ý Chương ${ch}`,
+          `Câu ${questionId} thuộc Chương ${ch} hiện chưa có file hints_${ch}.js trong thư mục web.`
+        );
+      }
+    }
+
+    window.addEventListener('reviewhints:ready', () => {
+      updateHintAvailabilityUI();
+    });
+
     // ==================== COPY SỐ TÀI KHOẢN NGÂN HÀNG ====================
     function copyBankAccount() {
       const stk = "0964952492";
@@ -1617,6 +1881,8 @@
       document.getElementById('lvl1-status').textContent = `Đã nạp: ${c1}/95`;
       document.getElementById('lvl2-status').textContent = `Đã nạp: ${c2}/240`;
       document.getElementById('lvl3-status').textContent = `Đã nạp: ${c3}/265`;
+
+      updateHintAvailabilityUI();
     }
 
     // ==================== HỆ THỐNG ÂM THANH ĐỘ TRỄ 0 GIÂY & KHUẾCH ĐẠI CỰC TO ====================
@@ -2341,6 +2607,7 @@
     let userAnswers = [];
     let currentFilter = 'all';
     let isExamMode = false;
+    let currentPracticeLevel = 1;
     let practiceShuffled = false;
     let examSubmitted = false;
     let autoNextEnabled = true;
@@ -2378,6 +2645,7 @@
         autoNextTimer = null;
         if (targetIndex < activeQuestions.length) {
           currentIndex = targetIndex;
+          inlineHintVisible = false;
           renderQuestion();
         }
       }, delayMs);
@@ -2482,6 +2750,7 @@
       stopExamTimer();
       resetHorrorScareState();
       examExitAttemptCount = 0;
+      inlineHintVisible = false;
       playSound('nav');
       document.getElementById('home-view').style.display = 'block';
       document.getElementById('workspace-view').style.display = 'none';
@@ -2517,6 +2786,7 @@
       examSubmitted = false;
       currentPracticeLevel = level;
       consecutiveWrongCount = 0;
+      inlineHintVisible = false;
 
       originalSessionQuestions = JSON.parse(JSON.stringify(bank));
       activeQuestions = JSON.parse(JSON.stringify(bank));
@@ -2602,6 +2872,7 @@
       practiceShuffled = false;
       examSubmitted = false;
       consecutiveWrongCount = 0;
+      inlineHintVisible = false;
       originalSessionQuestions = JSON.parse(JSON.stringify(raw50));
       activeQuestions = JSON.parse(JSON.stringify(raw50));
       userAnswers = new Array(activeQuestions.length).fill(null);
@@ -2689,7 +2960,7 @@
       if (!item) return;
 
       document.getElementById('q-number').textContent =
-        isExamMode ? `Câu thi ${currentIndex + 1}` : `Câu ${item.id}`;
+        isExamMode ? `Câu thi ${currentIndex + 1} (Mã ${item.id})` : `Câu ${item.id}`;
       document.getElementById('q-chapter-label').textContent = `Chương ${item.chapter}`;
       document.getElementById('q-index-label').textContent =
         `Câu ${currentIndex + 1} / ${activeQuestions.length}`;
@@ -2755,6 +3026,8 @@
         optionsList.appendChild(btn);
       });
 
+      renderInlineHintBox(item);
+
       document.getElementById('btn-prev').disabled = currentIndex === 0;
       document.getElementById('btn-next').disabled = currentIndex === activeQuestions.length - 1;
 
@@ -2806,6 +3079,7 @@
       clearAutoNextTimer();
       if (currentIndex > 0) {
         currentIndex--;
+        inlineHintVisible = false;
         playSound('nav');
         renderQuestion();
       }
@@ -2815,6 +3089,7 @@
       clearAutoNextTimer();
       if (currentIndex < activeQuestions.length - 1) {
         currentIndex++;
+        inlineHintVisible = false;
         playSound('nav');
         renderQuestion();
       }
@@ -2823,6 +3098,7 @@
     function jumpToQuestion(idx) {
       clearAutoNextTimer();
       currentIndex = idx;
+      inlineHintVisible = false;
       playSound('nav');
       renderQuestion();
     }
@@ -2932,6 +3208,7 @@
         return;
       }
       consecutiveWrongCount = 0;
+      inlineHintVisible = false;
       userAnswers = new Array(activeQuestions.length).fill(null);
       currentIndex = 0;
       currentFilter = 'all';
@@ -3025,12 +3302,23 @@
           card.innerHTML = `
             <div class="wrong-item-top">
               <span class="q-badge">Câu thi số ${w.index + 1} (Mã câu ${w.id} · Chương ${w.chapter})</span>
-              <button class="btn-jump-small" onclick="jumpToQuestion(${w.index})">Xem câu này →</button>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <button class="btn-jump-small" data-hint-idx="${w.index}">💡 Xem gợi ý</button>
+                <button class="btn-jump-small" onclick="jumpToQuestion(${w.index})">Xem câu này →</button>
+              </div>
             </div>
             <div class="wrong-item-q">${w.q}</div>
             <div class="wrong-item-ans user-picked"><strong>Bạn chọn:</strong> ${userText}</div>
             <div class="wrong-item-ans right-picked"><strong>Đáp án đúng:</strong> ${correctText}</div>
           `;
+
+          const hintBtn = card.querySelector('[data-hint-idx]');
+          if (hintBtn) {
+            hintBtn.addEventListener('click', () => {
+              openHintModalForSpecific(w.chapter, w.id, w.q);
+            });
+          }
+
           wrongListEl.appendChild(card);
         });
       }
