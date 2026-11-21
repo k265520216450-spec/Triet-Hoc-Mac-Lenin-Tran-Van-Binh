@@ -422,8 +422,6 @@
 
         /**
          * Tìm tự động xuyên suốt các chương đã nạp (dùng cực tiện cho đề thi tổng hợp hoặc đề trộn)
-         * @param {string|number} codeOrId - Mã câu nếu có (VD: "3.15", "c3_15", hoặc null)
-         * @param {string} questionText - Nội dung câu hỏi đang hiển thị trên index.html
          */
         findAuto(codeOrId, questionText) {
             const loadedChapters = Object.keys(this.chapters)
@@ -478,12 +476,14 @@
         },
 
         escapeHTML(str) {
-            return String(str)
-                .replace(/&/g, '&')
-                .replace(/</g, '<')
-                .replace(/>/g, '>')
-                .replace(/"/g, '"')
-                .replace(/'/g, ''');
+            const map = {
+                '&': '&',
+                '<': '<',
+                '>': '>',
+                '"': '"',
+                '\x27': '''
+            };
+            return String(str).replace(/[&<>"\x27]/g, ch => map[ch]);
         },
 
         /**
@@ -758,6 +758,9 @@
             if (backdrop) backdrop.classList.add('rh-hidden');
         }
     };
+
+    // Xuất ra biến toàn cục ngay khi khởi tạo
+    global.ReviewHints = ReviewHints;
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', injectStyles);
@@ -1040,7 +1043,7 @@
             [2, "Theo quan điểm của C. Mác, câu nói: 'Giới tự nhiên là thân thể vô cơ của con người' có ý nghĩa gì?", "Con người không đứng bên ngoài hay tách rời tự nhiên; không khí, nguồn nước, đất đai và sinh quyển gắn bó sống còn với con người như chính một phần cơ thể của mình.", "Nếu con người tàn phá rừng đầu nguồn và gây ô nhiễm nguồn nước thì chính sức khỏe và sự sinh tồn của loài người sẽ bị hủy hoại trực tiếp."],
             [2, "Điểm khác biệt căn bản nhất trong quan niệm về con người của C. Mác so với các nhà triết học duy vật trước đó (như L. Phoiơbắc) là gì?", "Các nhà duy vật cũ chỉ nhìn thấy con người ở góc độ sinh học tự nhiên, tình cảm trừu tượng phi lịch sử; còn Mác chỉ ra bản chất xã hội và vai trò hoạt động thực tiễn cải tạo thế giới của con người.", "Phoiơbắc nói về tình yêu thương nhân loại chung chung không phân biệt giai cấp, còn Mác chỉ ra muốn giải phóng con người phải thông qua thực tiễn xóa bỏ áp bức bóc lột."],
             [2, "Luận điểm: 'Con người vừa là chủ thể của lịch sử, vừa là sản phẩm của lịch sử' được hiểu như thế nào là đúng nhất?", "Mỗi thế hệ sinh ra đều thừa hưởng hoàn cảnh vật chất và văn hóa do lịch sử để lại (sản phẩm), đồng thời bằng lao động và sáng tạo lại cải biến hoàn cảnh đó để viết tiếp trang sử mới (chủ thể).", "Thế hệ trẻ Việt Nam ngày nay thừa hưởng nền hòa bình và hạ tầng từ cha ông, đồng thời chính họ đang trực tiếp kiến tạo nền kinh tế số cho tương lai đất nước."],
-            [2, "Theo triết học Mác - Lênin, khái niệm 'cá nhân' được xác định trong mối quan hệ trực tiếp với phạm trù nào?", "Một cá thể người chỉ trở thành 'cá nhân' mang nhân cách, quyền lợi và nghĩa vụ khi được đặt trong sự tương tác với cộng đồng xã hội xung quanh.", "Một em bé bị lạc trong rừng từ nhỏ và lớn lên cùng bầy sói chỉ mang hình hài sinh học chứ không có ngôn ngữ, duy duy hay nhân cách của một cá nhân xã hội."],
+            [2, "Theo triết học Mác - Lênin, khái niệm 'cá nhân' được xác định trong mối quan hệ trực tiếp với phạm trù nào?", "Một cá thể người chỉ trở thành 'cá nhân' mang nhân cách, quyền lợi và nghĩa vụ khi được đặt trong sự tương tác với cộng đồng xã hội xung quanh.", "Một em bé bị lạc trong rừng từ nhỏ và lớn lên cùng bầy sói chỉ mang hình hài sinh học chứ không có ngôn ngữ, tư duy hay nhân cách của một cá nhân xã hội."],
             [2, "Việc tuyệt đối hóa vai trò của cá nhân lãnh tụ, vĩ nhân và phủ nhận vai trò của quần chúng nhân dân sẽ dẫn đến sai lầm nào sau đây?", "Khi coi một cá nhân xuất chúng có thể tự mình quyết định toàn bộ vận mệnh lịch sử mà xem nhẹ sức mạnh của nhân dân, tư duy sẽ rơi vào duy tâm và dễ sinh ra tệ sùng bái cá nhân độc đoán.", "Tệ sùng bái cá nhân ở một số giai đoạn lịch sử khiến người lãnh đạo thoát ly quần chúng, đưa ra các quyết định chủ quan độc đoán gây tổn thất cho đất nước."],
             [2, "Theo quan điểm của chủ nghĩa Mác - Lênin, mục đích cao nhất của sự phát triển xã hội là gì?", "Tăng trưởng kinh tế hay phát triển khoa học kỹ thuật suy cho cùng đều chỉ là phương tiện; đích đến cao nhất của mọi tiến bộ xã hội là giải phóng con người và giúp mỗi người phát triển toàn diện.", "Mọi thành tựu tăng trưởng GDP của Việt Nam đều hướng tới việc nâng cao tuổi thọ, trình độ học vấn, thu nhập và hạnh phúc thực chất của người dân."],
             [2, "Theo quan điểm của C. Mác, điều kiện tiên quyết để khắc phục triệt để hiện tượng tha hóa con người và thực hiện giải phóng con người là gì?", "Chừng nào tư liệu sản xuất chủ yếu vẫn nằm trong tay thiểu số giai cấp bóc lột thì người lao động vẫn bị lệ thuộc và tha hóa; do đó phải xóa bỏ tận gốc chế độ tư hữu tư liệu sản xuất.", "Chỉ khi xóa bỏ chế độ chiếm hữu tư nhân tư bản và xây dựng chế độ làm chủ tập thể công bằng thì lao động mới thực sự trở thành hoạt động tự do sáng tạo của con người."],
@@ -1070,8 +1073,5 @@
             [6, "Vận dụng quan điểm triết học Mác – Lênin về con người vào chiến lược phát triển con người Việt Nam hiện nay, phương án nào toàn diện và đúng đắn nhất?", "Chiến lược phát triển con người phải bồi dưỡng hài hòa cả đạo đức, trí tuệ, thể chất lẫn thẩm mỹ, đồng thời giải quyết thỏa đáng lợi ích cá nhân trong sự thống nhất với lợi ích tập thể và xã hội.", "Chương trình giáo dục phổ thông mới hướng tới phát triển toàn diện phẩm chất và năng lực học sinh, kết hợp khuyến khích sáng tạo cá nhân với tinh thần trách nhiệm cộng đồng."]
         ]
     });
-
-    // Xuất ra biến toàn cục để index.html gọi trực tiếp
-    global.ReviewHints = ReviewHints;
 
 })(window);
