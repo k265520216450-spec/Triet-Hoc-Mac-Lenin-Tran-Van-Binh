@@ -1494,15 +1494,16 @@
     window.BANK_CHUONG_1 = []; 
     window.BANK_CHUONG_2 = []; 
     window.BANK_CHUONG_3 = []; 
+    window.__HINTS_MISSING = { 1: false, 2: false, 3: false };
   </script>
   <script src="chuong1.js" onerror="void 0"></script>
   <script src="chuong2.js" onerror="void 0"></script>
   <script src="chuong3.js" onerror="void 0"></script>
 
   <!-- KHU VỰC NẠP BỘ GỢI Ý ÔN TẬP 3 CHƯƠNG (hints_1.js, hints_2.js, hints_3.js) -->
-  <script src="hints_1.js" onerror="void 0"></script>
-  <script src="hints_2.js" onerror="void 0"></script>
-  <script src="hints_3.js" onerror="void 0"></script>
+  <script src="hints_1.js?v=2" onerror="window.__HINTS_MISSING[1]=true"></script>
+  <script src="hints_2.js?v=2" onerror="window.__HINTS_MISSING[2]=true"></script>
+  <script src="hints_3.js?v=2" onerror="window.__HINTS_MISSING[3]=true"></script>
 
   <script>
     // ==================== KẾT NỐI HỆ THỐNG GỢI Ý CHƯƠNG 1 - 2 - 3 ====================
@@ -1523,7 +1524,11 @@
       if (!statusEl) return;
 
       if (!window.ReviewHints || !window.ReviewHints.chapters) {
-        statusEl.textContent = '💡 Gợi ý: Chưa nạp file hints_*.js';
+        if (window.__HINTS_MISSING && window.__HINTS_MISSING[3]) {
+          statusEl.textContent = '⚠️ Chưa thấy file hints_3.js (kiểm tra tên file viết thường & chờ GitHub deploy)';
+        } else {
+          statusEl.textContent = '⚠️ File hints_3.js có lỗi cú pháp JS bên trong';
+        }
         statusEl.style.color = '#fbbf24';
         return;
       }
@@ -1587,7 +1592,6 @@
 
     function toggleCurrentInlineHint() {
       if (isExamMode && !examSubmitted) return;
-      // Khi bấm xem gợi ý, tự dừng hẹn giờ chuyển câu để không bị nhảy trang giữa chừng
       clearAutoNextTimer();
       inlineHintVisible = !inlineHintVisible;
       playSound('nav');
@@ -1637,10 +1641,10 @@
       }
 
       if (!window.ReviewHints) {
-        openNoticeModal(
-          "Chưa nạp bộ gợi ý",
-          "Chưa tìm thấy file hints_1.js, hints_2.js hoặc hints_3.js cùng thư mục với index.html."
-        );
+        const detailMsg = (window.__HINTS_MISSING && window.__HINTS_MISSING[3])
+          ? "Trình duyệt không tìm thấy file hints_3.js cùng thư mục với index.html (kiểm tra tên file viết thường hints_3.js và chờ GitHub Pages deploy)."
+          : "File hints_3.js bị lỗi cú pháp JS bên trong nên trình duyệt không nạp được.";
+        openNoticeModal("Chưa nạp bộ gợi ý", detailMsg);
         return;
       }
 
@@ -1657,7 +1661,6 @@
         }
       }
 
-      // Tìm chương đầu tiên đã có dữ liệu gợi ý (ưu tiên chương đang ôn tập nếu có)
       const preferredOrder = currentItem
         ? [Number(currentItem.chapter), 3, 2, 1]
         : [3, 2, 1];
@@ -3063,14 +3066,12 @@
           }
         }
         renderQuestion();
-        // Chọn đúng -> 1 giây (1000ms) sau chuyển câu; chọn sai -> 5 giây (5000ms) sau mới chuyển câu
         scheduleAutoNext(isCorrect ? 1000 : 5000);
       } else {
         if (examSubmitted) return;
         userAnswers[currentIndex] = optIndex;
         playSound('select');
         renderQuestion();
-        // Chế độ thi thử: nhảy sang câu tiếp theo sau 250ms
         scheduleAutoNext(250);
       }
     }
