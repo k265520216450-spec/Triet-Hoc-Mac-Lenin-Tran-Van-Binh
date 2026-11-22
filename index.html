@@ -1188,7 +1188,7 @@
       border-radius: 12px;
       border: 1px solid rgba(99, 102, 241, 0.48);
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
-      max-width: 300px;
+      max-width: 320px;
       display: none;
       line-height: 1.4;
     }
@@ -1556,7 +1556,7 @@
   <!-- NÚT ĐIỀU KHIỂN CHỌN ĐÁP ÁN BẰNG GIỌNG NÓI -->
   <div class="rv-dock">
     <div id="rvToast" class="rv-toast"></div>
-    <button type="button" id="rvMicBtn" class="rv-mic-btn" title="Bật/Tắt chọn đáp án bằng giọng nói">
+    <button type="button" id="rvMicBtn" class="rv-mic-btn" title="Bật/Tắt điều khiển bằng giọng nói">
       <span id="rvMicIcon">🎤</span>
       <span id="rvMicLabel">Giọng nói</span>
     </button>
@@ -3475,7 +3475,7 @@
     updateHomeBankStatus();
     loadExternalJsonBanks();
 
-    // ==================== BỘ ĐIỀU KHIỂN CHỌN ĐÁP ÁN BẰNG GIỌNG NÓI ====================
+    // ==================== BỘ ĐIỀU KHIỂN GIỌNG NÓI TỰ ĐỘNG SAU 0,5 GIÂY ====================
     (function initVoiceControl() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       const btn = document.getElementById('rvMicBtn');
@@ -3483,7 +3483,12 @@
       const toast = document.getElementById('rvToast');
       if (!btn || !label || !toast) return;
 
+      const AUTO_EXEC_DELAY_MS = 500; // Tự động thực thi sau 0,5 giây kể từ khi nói xong
       let toastTimer = null;
+      let execTimer = null;
+      let pendingCmdSignature = '';
+      let lastExecutedResultIndex = -1;
+
       function showVoiceStatus(msg, duration = 2600) {
         toast.textContent = msg;
         toast.classList.add('show');
@@ -3493,11 +3498,19 @@
         }
       }
 
+      function clearPendingExecution() {
+        if (execTimer) {
+          clearTimeout(execTimer);
+          execTimer = null;
+        }
+        pendingCmdSignature = '';
+      }
+
       const OPTION_MAP = {
         A: ['a', 'à', 'á', 'ạ', 'ả', 'ã', 'ây', 'ay', 'một', '1'],
-        B: ['b', 'bê', 'bề', 'bế', 'bệ', 'bể', 'bờ', 'bi', 'hai', '2'],
-        C: ['c', 'xê', 'sê', 'cê', 'xề', 'sề', 'cờ', 'xi', 'si', 'ba', '3'],
-        D: ['d', 'dê', 'đê', 'giê', 'dề', 'đề', 'dờ', 'đờ', 'đi', 'zi', 'bốn', '4']
+        B: ['b', 'bê', 'bề', 'bế', 'bệ', 'bể', 'bờ', 'bi', 'bò', 'hai', '2'],
+        C: ['c', 'xê', 'sê', 'cê', 'xề', 'sề', 'cờ', 'xi', 'si', 'xe', 'ba', '3'],
+        D: ['d', 'dê', 'đê', 'giê', 'dề', 'đề', 'dờ', 'đờ', 'đi', 'zi', 'de', 'đây', 'bốn', 'tư', '4']
       };
 
       function parseVoiceCommand(rawText) {
@@ -3507,26 +3520,76 @@
           .replace(/\s+/g, ' ')
           .trim();
 
-        if (/(gợi ý|trợ giúp|giải thích|ẩn gợi ý)/.test(text)) {
+        if (!text) return { type: 'UNKNOWN', raw: text };
+
+        // 1. Tắt giọng nói
+        if (/(tắt giọng nói|tắt mic|tắt micro|dừng nghe|ngừng nghe)/.test(text)) {
+          return { type: 'STOP_MIC', raw: text };
+        }
+
+        // 2. Điều hướng chế độ / Trang chủ / Chương
+        if (/(về trang chủ|trang chủ|màn hình chính|thoát ra)/.test(text)) {
+          return { type: 'HOME', raw: text };
+        }
+        if (/(thi thử|bắt đầu thi|vào thi)/.test(text)) {
+          return { type: 'START_EXAM', raw: text };
+        }
+        if (/(mức 1|mức một|chương 1|chương một)/.test(text)) {
+          return { type: 'LEVEL', level: 1, raw: text };
+        }
+        if (/(mức 2|mức hai|chương 2|chương hai)/.test(text)) {
+          return { type: 'LEVEL', level: 2, raw: text };
+        }
+        if (/(mức 3|mức ba|chương 3|chương ba)/.test(text)) {
+          return { type: 'LEVEL', level: 3, raw: text };
+        }
+
+        // 3. Nộp bài thi
+        if (/(nộp luôn|xác nhận nộp|đồng ý nộp)/.test(text)) {
+          return { type: 'CONFIRM_SUBMIT', raw: text };
+        }
+        if (/(làm tiếp|hủy nộp|không nộp)/.test(text)) {
+          return { type: 'CANCEL_SUBMIT', raw: text };
+        }
+        if (/(nộp bài|kết thúc bài)/.test(text)) {
+          return { type: 'SUBMIT_EXAM', raw: text };
+        }
+
+        // 4. Các nút công cụ (Tráo câu, Tự chuyển, Làm lại, Gợi ý)
+        if (/(tráo câu|tráo đáp án|đảo câu|đảo đáp án)/.test(text)) {
+          return { type: 'SHUFFLE', raw: text };
+        }
+        if (/(tự chuyển|chuyển tự động)/.test(text)) {
+          return { type: 'AUTO_NEXT', raw: text };
+        }
+        if (/(làm lại|bắt đầu lại|reset)/.test(text)) {
+          return { type: 'RESET', raw: text };
+        }
+        if (/(kho gợi ý|trùm cuối|mở kho)/.test(text)) {
+          return { type: 'HINT_MODAL', raw: text };
+        }
+        if (/(gợi ý|trợ giúp|giải thích|ẩn gợi ý|mở gợi ý|xem gợi ý)/.test(text)) {
           return { type: 'HINT', raw: text };
         }
-        if (/(câu tiếp|tiếp theo|câu sau|next|qua câu)/.test(text)) {
+
+        // 5. Chuyển câu trước / sau
+        if (/(câu tiếp|tiếp theo|câu sau|next|qua câu|chuyển câu|^tiếp$)/.test(text)) {
           return { type: 'NEXT', raw: text };
         }
-        if (/(câu trước|quay lại|lùi lại|prev)/.test(text)) {
+        if (/(câu trước|quay lại|lùi lại|trở lại|prev)/.test(text)) {
           return { type: 'PREV', raw: text };
         }
 
-        const hasExplicitPrefix = /^(chọn|đáp án|câu|ý|phương án|tôi chọn|mình chọn)\s+/.test(text);
+        // 6. Chọn đáp án A / B / C / D
+        const hasExplicitPrefix = /^(chọn|đáp án|câu trả lời|câu|ý|phương án|tôi chọn|mình chọn)\s+/.test(text);
         const cleaned = text
-          .replace(/^(chọn|đáp án|câu|ý|phương án|là|tôi chọn|mình chọn)\s+/g, '')
-          .replace(/^(chọn|đáp án|câu|ý|phương án|là)\s+/g, '')
+          .replace(/^(tôi chọn|mình chọn|chọn|đáp án đúng là|đáp án|câu trả lời|câu|ý|phương án|số|là)\s+/g, '')
+          .replace(/^(chọn|đáp án|câu|ý|phương án|số|là)\s+/g, '')
           .trim();
 
         const words = cleaned.split(' ').filter(Boolean);
         if (words.length === 0) return { type: 'UNKNOWN', raw: text };
 
-        // Chỉ nhận khi câu ngắn (1-3 từ) hoặc có từ khóa "chọn / đáp án" đứng trước để tránh tạp âm
         if (words.length <= 3 || hasExplicitPrefix) {
           const lastWord = words[words.length - 1];
           for (const [letter, aliases] of Object.entries(OPTION_MAP)) {
@@ -3535,17 +3598,50 @@
             }
           }
         }
+
         return { type: 'UNKNOWN', raw: text };
       }
 
       function executeVoiceCommand(cmd) {
-        const workspaceVisible = document.getElementById('workspace-view').style.display === 'block';
-        if (!workspaceVisible || !activeQuestions || activeQuestions.length === 0) {
-          showVoiceStatus('⚠️ Hãy chọn một chương hoặc bắt đầu thi trước khi đọc đáp án!');
+        unlockAudio();
+
+        if (cmd.type === 'STOP_MIC') {
+          isListening = false;
+          recognition.stop();
+          setListeningUI(false);
+          showVoiceStatus('🔇 Đã tắt điều khiển giọng nói.', 2000);
           return;
         }
 
-        unlockAudio();
+        if (cmd.type === 'HOME') {
+          goHome();
+          showVoiceStatus('🏠 Đã chuyển về Trang Chủ');
+          return;
+        }
+
+        if (cmd.type === 'START_EXAM') {
+          startExamMode();
+          showVoiceStatus('🚀 Đã vào phòng thi thử!');
+          return;
+        }
+
+        if (cmd.type === 'LEVEL') {
+          startPracticeLevel(cmd.level);
+          showVoiceStatus(`📖 Đã mở Ôn tập Chương ${cmd.level}`);
+          return;
+        }
+
+        if (cmd.type === 'HINT_MODAL') {
+          openHintModalForCurrent();
+          showVoiceStatus('📖 Đã mở Kho Gợi Ý');
+          return;
+        }
+
+        const workspaceVisible = document.getElementById('workspace-view').style.display === 'block';
+        if (!workspaceVisible || !activeQuestions || activeQuestions.length === 0) {
+          showVoiceStatus('⚠️ Hãy nói "Chương 1", "Chương 2", "Chương 3" hoặc "Thi thử" trước!');
+          return;
+        }
 
         if (cmd.type === 'ANSWER') {
           const idx = prefixes.indexOf(cmd.option);
@@ -3563,14 +3659,14 @@
             return;
           }
           selectOption(idx);
-          showVoiceStatus(`✅ Nghe: "${cmd.raw}" → Chọn ${cmd.option}`);
+          showVoiceStatus(`✅ Đã chọn đáp án ${cmd.option}`);
           return;
         }
 
         if (cmd.type === 'NEXT') {
           if (currentIndex < activeQuestions.length - 1) {
             nextQuestion();
-            showVoiceStatus(`⚡ Chuyển sang câu ${currentIndex + 1}`);
+            showVoiceStatus(`⚡ Sang câu ${currentIndex + 1}`);
           } else {
             showVoiceStatus(`ℹ️ Đang ở câu cuối cùng rồi!`);
           }
@@ -3589,11 +3685,57 @@
 
         if (cmd.type === 'HINT') {
           if (isExamMode && !examSubmitted) {
-            showVoiceStatus(`🔒 Đang trong giờ thi, tạm khóa gợi ý!`);
+            showVoiceStatus(`🔒 Đang thi thử, tạm khóa gợi ý!`);
           } else {
             toggleCurrentInlineHint();
             showVoiceStatus(inlineHintVisible ? `💡 Đã mở gợi ý câu này` : `🙈 Đã ẩn gợi ý`);
           }
+          return;
+        }
+
+        if (cmd.type === 'SHUFFLE') {
+          if (isExamMode) {
+            showVoiceStatus(`ℹ️ Đề thi đã tráo sẵn rồi!`);
+          } else {
+            togglePracticeShuffle();
+            showVoiceStatus(practiceShuffled ? `🔀 Đã bật tráo câu & đáp án` : `📋 Đã về thứ tự mặc định`);
+          }
+          return;
+        }
+
+        if (cmd.type === 'AUTO_NEXT') {
+          toggleAutoNext();
+          showVoiceStatus(autoNextEnabled ? `⏩ Đã bật tự chuyển câu` : `⏸️ Đã tắt tự chuyển câu`);
+          return;
+        }
+
+        if (cmd.type === 'RESET') {
+          resetCurrentSession();
+          showVoiceStatus(`🔄 Đã làm lại phiên này`);
+          return;
+        }
+
+        if (cmd.type === 'SUBMIT_EXAM') {
+          if (!isExamMode || examSubmitted) {
+            showVoiceStatus(`ℹ️ Chỉ dùng khi đang làm bài thi!`);
+          } else {
+            requestSubmitExam();
+            showVoiceStatus(`✅ Đã gọi lệnh nộp bài`);
+          }
+          return;
+        }
+
+        if (cmd.type === 'CONFIRM_SUBMIT') {
+          if (isExamMode && !examSubmitted) {
+            finalizeExam(false);
+            showVoiceStatus(`📊 Đã nộp bài thi!`);
+          }
+          return;
+        }
+
+        if (cmd.type === 'CANCEL_SUBMIT') {
+          cancelSubmitExam();
+          showVoiceStatus(`📝 Tiếp tục làm bài`);
         }
       }
 
@@ -3607,7 +3749,7 @@
       const recognition = new SpeechRecognition();
       recognition.lang = 'vi-VN';
       recognition.continuous = true;
-      recognition.interimResults = false;
+      recognition.interimResults = true;
       recognition.maxAlternatives = 1;
 
       let isListening = false;
@@ -3616,32 +3758,54 @@
       function setListeningUI(active) {
         isListening = active;
         btn.classList.toggle('listening', active);
-        label.textContent = active ? 'Đang nghe (A/B/C/D)...' : 'Giọng nói';
+        label.textContent = active ? 'Đang nghe tự động...' : 'Giọng nói';
       }
 
       recognition.onstart = () => {
         blockedByPermission = false;
+        lastExecutedResultIndex = -1;
+        clearPendingExecution();
         setListeningUI(true);
-        showVoiceStatus('🎙️ Đã bật mic! Nói: "A", "Bê", "Xê", "Dê", "Gợi ý" hoặc "Câu tiếp"...', 3500);
+        showVoiceStatus('🎙️ Mic đang bật liên tục! Nói xong 0,5s tự chọn luôn (VD: "Chọn A", "Câu tiếp", "Gợi ý")...', 3500);
       };
 
       recognition.onresult = (event) => {
-        const last = event.results[event.results.length - 1];
-        if (!last || !last.isFinal) return;
+        const resIdx = event.resultIndex;
+        if (resIdx === lastExecutedResultIndex) return;
 
-        const transcript = last[0].transcript.trim();
+        const result = event.results[resIdx];
+        if (!result || !result[0]) return;
+
+        const transcript = result[0].transcript.trim();
+        if (!transcript) return;
+
         const cmd = parseVoiceCommand(transcript);
 
         if (cmd.type === 'UNKNOWN') {
-          showVoiceStatus(`👂 Nghe được: "${transcript}" (Hãy nói A, B, C, D)`);
-        } else {
-          executeVoiceCommand(cmd);
+          clearPendingExecution();
+          showVoiceStatus(`👂 Đang nghe: "${transcript}"...`, 2000);
+          return;
+        }
+
+        const signature = `${resIdx}:${cmd.type}:${cmd.option || cmd.level || ''}`;
+        if (signature !== pendingCmdSignature) {
+          clearPendingExecution();
+          pendingCmdSignature = signature;
+          showVoiceStatus(`⏳ Nghe: "${transcript}" → Chọn sau 0,5s...`, 1500);
+
+          execTimer = setTimeout(() => {
+            execTimer = null;
+            pendingCmdSignature = '';
+            lastExecutedResultIndex = resIdx;
+            executeVoiceCommand(cmd);
+          }, AUTO_EXEC_DELAY_MS);
         }
       };
 
       recognition.onerror = (event) => {
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
           blockedByPermission = true;
+          clearPendingExecution();
           setListeningUI(false);
           showVoiceStatus('🚫 Trình duyệt đang chặn quyền Micro. Hãy bấm biểu tượng ổ khóa trên thanh địa chỉ để cho phép Mic!', 5000);
         } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
@@ -3650,12 +3814,16 @@
       };
 
       recognition.onend = () => {
+        lastExecutedResultIndex = -1;
         if (isListening && !blockedByPermission) {
-          try {
-            recognition.start();
-          } catch (_) {
-            setListeningUI(false);
-          }
+          setTimeout(() => {
+            if (!isListening || blockedByPermission) return;
+            try {
+              recognition.start();
+            } catch (_) {
+              setListeningUI(false);
+            }
+          }, 80);
         } else {
           setListeningUI(false);
         }
@@ -3665,6 +3833,7 @@
         unlockAudio();
         if (isListening) {
           isListening = false;
+          clearPendingExecution();
           recognition.stop();
           setListeningUI(false);
           showVoiceStatus('🔇 Đã tắt điều khiển giọng nói.', 2000);
